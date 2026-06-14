@@ -399,6 +399,26 @@
       return true;
     }
 
+    function solanaAgentProfile(player, id) {
+      const profiles = [
+        { name: 'Yield Farmer', sprite: 'Boy', zone: 'Yield Farm' },
+        { name: 'LP Vault Engineer', sprite: 'FighterRed', zone: 'LP Vault' },
+        { name: 'Validator Monk', sprite: 'Monk', zone: 'Validator Shrine' },
+        { name: 'Market Maker', sprite: 'Princess', zone: 'AMM Market' },
+      ];
+      if (!player || player.name === 'Observer') return player;
+      const knownOrder = ['npc_elder_chen', 'npc_samurai_lin', 'npc_princess_lily', 'demo_farmer', 'demo_lp', 'demo_validator', 'demo_mm'];
+      const orderedIndex = knownOrder.indexOf(id);
+      const hash = String(id || player.id || player.name || '').split('').reduce((sum, ch) => sum + ch.charCodeAt(0), 0);
+      const index = orderedIndex >= 0 ? orderedIndex % profiles.length : hash % profiles.length;
+      const profile = profiles[index];
+      player.solanaSpriteIndex = typeof player.solanaSpriteIndex === 'number' ? player.solanaSpriteIndex : index;
+      player.name = profile.name;
+      player.sprite = profile.sprite;
+      player.protocolZoneName = profile.zone;
+      return player;
+    }
+
     function startVercelDemoMode() {
       if (demoModeStarted) return;
       demoModeStarted = true;
@@ -427,6 +447,7 @@
     // ==========================================
     async function initialize() {
       try {
+        document.body.classList.add('cyberpunk-mode');
         const response = await fetch('assets/map.tmj');
         mapData = await response.json();
         if (mapData.tilesets) {
@@ -462,7 +483,7 @@
         eventSource.onmessage = (event) => {
           const serverPlayers = JSON.parse(event.data);
           for (const id in serverPlayers) {
-            const sp = serverPlayers[id];
+            const sp = solanaAgentProfile(serverPlayers[id], id);
             if (!clientPlayers[id]) {
               clientPlayers[id] = { ...sp, displayX: sp.x * TILE_SIZE, displayY: sp.y * TILE_SIZE, targetX: sp.x * TILE_SIZE, targetY: sp.y * TILE_SIZE, animFrame: 0, id };
             } else {
@@ -474,6 +495,8 @@
               clientPlayers[id].interactionIcon = sp.interactionIcon;
               clientPlayers[id].sprite = sp.sprite;
               clientPlayers[id].name = sp.name;
+              clientPlayers[id].solanaSpriteIndex = sp.solanaSpriteIndex;
+              clientPlayers[id].protocolZoneName = sp.protocolZoneName;
               clientPlayers[id].id = id;
               clientPlayers[id].isThinking = sp.isThinking;
               clientPlayers[id].currentZoneName = sp.currentZoneName;

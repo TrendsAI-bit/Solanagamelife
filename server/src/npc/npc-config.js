@@ -13,8 +13,8 @@
 const NPC_PROFILES = [
   {
     id: 'npc_elder_chen',
-    name: '村长老陈',
-    sprite: 'OldMan',
+    name: 'Yield Farmer',
+    sprite: 'Boy',
     personality: 'friendly',
     spawnX: 14,
     spawnY: 12,
@@ -49,8 +49,8 @@ const NPC_PROFILES = [
   },
   {
     id: 'npc_samurai_lin',
-    name: '武士小林',
-    sprite: 'Samurai',
+    name: 'LP Vault Engineer',
+    sprite: 'FighterRed',
     personality: 'stoic',
     spawnX: 30,
     spawnY: 25,
@@ -77,8 +77,8 @@ const NPC_PROFILES = [
   },
   {
     id: 'npc_princess_lily',
-    name: '公主莉莉',
-    sprite: 'Princess',
+    name: 'Validator Monk',
+    sprite: 'Monk',
     personality: 'curious',
     spawnX: 20,
     spawnY: 8,
