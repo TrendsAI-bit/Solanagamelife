@@ -28,10 +28,10 @@ class BaseStatsPlugin extends IPlugin {
     // 查看属性状态
     ctx.registerRoute('get', '/stats/status', (req, res) => {
       const playerId = req.requestHandle?.playerId || req.query?.playerId;
-      if (!playerId) return res.status(400).json({ error: '需要 playerId' });
+      if (!playerId) return res.status(400).json({ error: 'Missing playerId' });
 
       const stats = ctx.getPlayerStats(playerId);
-      if (!stats) return res.status(404).json({ error: '玩家不存在' });
+      if (!stats) return res.status(404).json({ error: 'Player not found' });
 
       res.json({
         playerName: stats.playerName,
@@ -51,10 +51,10 @@ class BaseStatsPlugin extends IPlugin {
     // 查看背包
     ctx.registerRoute('get', '/stats/inventory', (req, res) => {
       const playerId = req.requestHandle?.playerId || req.query?.playerId;
-      if (!playerId) return res.status(400).json({ error: '需要 playerId' });
+      if (!playerId) return res.status(400).json({ error: 'Missing playerId' });
 
       const stats = ctx.getPlayerStats(playerId);
-      if (!stats) return res.status(404).json({ error: '玩家不存在' });
+      if (!stats) return res.status(404).json({ error: 'Player not found' });
 
       res.json({
         inventory: stats.inventory,
@@ -67,7 +67,7 @@ class BaseStatsPlugin extends IPlugin {
     ctx.registerRoute('post', '/stats/use', (req, res) => {
       const playerId = req.requestHandle?.playerId || req.body?.playerId;
       const itemKey = req.body?.itemKey;
-      if (!playerId || !itemKey) return res.status(400).json({ error: '需要 playerId 和 itemKey' });
+      if (!playerId || !itemKey) return res.status(400).json({ error: 'Missing playerId or itemKey' });
 
       const result = ctx.useItem(playerId, itemKey);
       res.json(result);
@@ -77,7 +77,7 @@ class BaseStatsPlugin extends IPlugin {
     ctx.registerRoute('post', '/stats/equip', (req, res) => {
       const playerId = req.requestHandle?.playerId || req.body?.playerId;
       const itemKey = req.body?.itemKey;
-      if (!playerId || !itemKey) return res.status(400).json({ error: '需要 playerId 和 itemKey' });
+      if (!playerId || !itemKey) return res.status(400).json({ error: 'Missing playerId or itemKey' });
 
       const result = ctx.equipItem(playerId, itemKey);
       res.json(result);

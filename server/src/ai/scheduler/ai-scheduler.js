@@ -123,7 +123,7 @@ class AiScheduler {
       this.consecutiveErrors = 0;
 
       // Log the action
-      console.log(`[ai-npc] ${this.config.name}: ${result?.detail || '思考中...'}`);
+      console.log(`[ai-npc] ${this.config.name}: ${result?.detail || 'Thinking...'}`);
 
     } catch (err) {
       console.error(`[ai-scheduler] Error for ${this.config.name}:`, err.message);
@@ -265,10 +265,11 @@ class AiScheduler {
       if (content && content.trim()) {
         // Check if content looks like spoken dialogue (not internal thought)
         const text = content.trim();
-        const looksLikeDialogue = !text.includes('我想') &&
-          !text.includes('应该') &&
-          !text.includes('或许') &&
-          !text.includes('思考') &&
+        const lowerText = text.toLowerCase();
+        const looksLikeDialogue = !lowerText.includes('i think') &&
+          !lowerText.includes('should') &&
+          !lowerText.includes('maybe') &&
+          !lowerText.includes('thinking') &&
           text.length < 100;
 
         if (looksLikeDialogue && Math.random() > 0.5) {
@@ -276,7 +277,7 @@ class AiScheduler {
           return await this.executeChat({ text });
         }
       }
-      return { action: 'observe', detail: '思考中...' };
+      return { action: 'observe', detail: 'Thinking...' };
     }
 
     // Execute the first tool call
@@ -301,7 +302,7 @@ class AiScheduler {
         break;
 
       case 'observe':
-        result = { action: 'observe', detail: args.thought || '静静观察' };
+        result = { action: 'observe', detail: args.thought || 'Watching the protocol map' };
         break;
 
       case 'setGoal':
@@ -335,7 +336,7 @@ class AiScheduler {
       }
     }
 
-    return { action: 'chat', detail: `说: "${text.substring(0, 50)}${text.length > 50 ? '...' : ''}"` };
+    return { action: 'chat', detail: `Said: "${text.substring(0, 50)}${text.length > 50 ? '...' : ''}"` };
   }
 
   async executeMove(args) {
@@ -355,11 +356,11 @@ class AiScheduler {
     try {
       const result = await this.engine.move(this.npcId, target);
       if (result && !result.error) {
-        return { action: 'move', detail: `移动到 (${result.player.x}, ${result.player.y})` };
+        return { action: 'move', detail: `Moved to (${result.player.x}, ${result.player.y})` };
       }
-      return { action: 'move', detail: `移动失败: ${result?.error || '未知原因'}` };
+      return { action: 'move', detail: `Move failed: ${result?.error || 'unknown reason'}` };
     } catch (err) {
-      return { action: 'move', detail: `移动出错: ${err.message}` };
+      return { action: 'move', detail: `Move error: ${err.message}` };
     }
   }
 
@@ -369,9 +370,9 @@ class AiScheduler {
       if (result) {
         return { action: 'interact', detail: `${result.action}: ${result.result}` };
       }
-      return { action: 'interact', detail: '此处没有可互动的对象' };
+      return { action: 'interact', detail: 'No interactable protocol object here' };
     } catch (err) {
-      return { action: 'interact', detail: `互动出错: ${err.message}` };
+      return { action: 'interact', detail: `Interaction error: ${err.message}` };
     }
   }
 
@@ -384,7 +385,7 @@ class AiScheduler {
     this.currentGoal = goal;
     this.memoryStore.setGoal(this.npcId, goal);
 
-    return { action: 'setGoal', detail: `设定新目标: ${goal}` };
+    return { action: 'setGoal', detail: `Set new goal: ${goal}` };
   }
 
   /**
@@ -394,7 +395,7 @@ class AiScheduler {
     // Ensure heartbeat
     this.engine.touchAction(this.npcId);
 
-    console.log(`[ai-npc] ${this.config.name}: 使用 fallback 行为 (AI 调用失败)`);
+    console.log(`[ai-npc] ${this.config.name}: using fallback behavior after AI call failed`);
 
     // Simple random behavior
     const roll = Math.random();

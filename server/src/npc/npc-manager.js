@@ -17,18 +17,18 @@ class NpcManager {
    */
   start() {
     if (!NPC_ENABLED) {
-      console.log('🤖 NPC 系统已禁用 (ALICIZATION_TOWN_NPC_ENABLED=false)');
+      console.log('[npc] NPC system disabled (ALICIZATION_TOWN_NPC_ENABLED=false)');
       return;
     }
 
-    console.log(`🤖 正在初始化 ${NPC_PROFILES.length} 个常驻 NPC...`);
+    console.log(`[npc] Initializing ${NPC_PROFILES.length} persistent NPCs...`);
     this.running = true;
 
     for (const config of NPC_PROFILES) {
       this._spawnNpc(config);
     }
 
-    console.log(`🤖 ${this.npcs.size} 个 NPC 已上线`);
+    console.log(`[npc] ${this.npcs.size} NPCs are online`);
   }
 
   /**
@@ -52,7 +52,7 @@ class NpcManager {
     const timer = this._scheduleNextAction(config, behavior);
 
     this.npcs.set(config.id, { config, behavior, timer });
-    console.log(`  ✅ ${config.name} (${config.sprite}) 出现在 (${player.x}, ${player.y})`);
+    console.log(`[npc] ${config.name} (${config.sprite}) spawned at (${player.x}, ${player.y})`);
   }
 
   /**
@@ -74,7 +74,7 @@ class NpcManager {
         }
         behavior.cleanupGreetHistory();
       } catch (err) {
-        console.error(`🤖 NPC ${config.name} 行为异常:`, err.message);
+        console.error(`[npc] Behavior error for ${config.name}:`, err.message);
       }
       const entry = this.npcs.get(config.id);
       if (entry) {
@@ -91,13 +91,13 @@ class NpcManager {
    */
   stop() {
     this.running = false;
-    console.log('🤖 正在清理 NPC...');
+    console.log('[npc] Cleaning up NPCs...');
     for (const [npcId, entry] of this.npcs) {
       if (entry.timer) clearTimeout(entry.timer);
       this.engine.removePlayer(npcId);
     }
     this.npcs.clear();
-    console.log('🤖 所有 NPC 已下线');
+    console.log('[npc] All NPCs are offline');
   }
 
   /**

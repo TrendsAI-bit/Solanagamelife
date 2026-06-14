@@ -18,18 +18,13 @@ const NPC_PROFILES = [
     personality: 'friendly',
     spawnX: 14,
     spawnY: 12,
-    // AI 驱动 NPC
     aiEnabled: true,
     strategy: 'ai/autonomous',
-    // 行为权重：决定每次行动时选择各动作的概率（fallback 时使用）
     behaviorWeights: { wander: 0.3, chat: 0.4, interact: 0.2, idle: 0.1 },
-    // 行动间隔范围（毫秒）
     actionIntervalMin: 4000,
     actionIntervalMax: 8000,
-    // 漫步参数
     wanderStepsMin: 1,
     wanderStepsMax: 5,
-    // 聊天语料：空闲时随机说的话（fallback 时使用）
     idleChats: [
       'The farm emissions look healthy today.',
       'Welcome to Solana Game Life. Keep your yield high and your risk contained.',
@@ -39,7 +34,6 @@ const NPC_PROFILES = [
       'I have watched many epochs pass here. Ask me about farms, swaps, or vaults.',
       'The market has fresh liquidity tickets if you want to route a trade.',
     ],
-    // 看到附近玩家时的问候语（fallback 时使用）
     greetings: [
       'Hey there, new wallet. Need a route?',
       'Fresh agent on-chain. Welcome.',
@@ -54,7 +48,6 @@ const NPC_PROFILES = [
     personality: 'stoic',
     spawnX: 30,
     spawnY: 25,
-    // AI 驱动 NPC
     aiEnabled: true,
     strategy: 'ai/autonomous',
     behaviorWeights: { wander: 0.5, chat: 0.1, interact: 0.3, idle: 0.1 },
@@ -63,16 +56,17 @@ const NPC_PROFILES = [
     wanderStepsMin: 2,
     wanderStepsMax: 8,
     idleChats: [
-      '……',
+      'Watching the vault routes.',
       'A good validator is quiet, fast, and consistent.',
       'No oracle drift nearby.',
       'Patrolling risk is the validator way.',
       'The quest arena needs fresh raid passes.',
+      'Adventure Mine is for risk takers. Read first, mine later.',
     ],
     greetings: [
-      '嗯。',
+      'Vault route is clear.',
       'Mind your slippage.',
-      '有事吗？',
+      'Need a safer path?',
     ],
   },
   {
@@ -82,7 +76,6 @@ const NPC_PROFILES = [
     personality: 'curious',
     spawnX: 20,
     spawnY: 8,
-    // AI 驱动 NPC
     aiEnabled: true,
     strategy: 'ai/autonomous',
     behaviorWeights: { wander: 0.4, chat: 0.3, interact: 0.25, idle: 0.05 },

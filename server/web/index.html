@@ -73,6 +73,10 @@
       <div id="side-panel">
         <div id="agent-launch-panel">
           <h3>Launch Agent</h3>
+          <div id="wallet-connect-row">
+            <button id="connect-wallet-btn" type="button">Connect Solana Wallet</button>
+            <span id="wallet-connect-status">Wallet optional</span>
+          </div>
           <div class="agent-launch-row">
             <input id="wallet-input" type="text" maxlength="80" placeholder="Wallet or handle">
             <select id="pet-select" aria-label="Avatar type">
@@ -80,6 +84,10 @@
               <option value="codex">Codex Pet</option>
               <option value="claude">Claude Pet</option>
             </select>
+          </div>
+          <div class="mode-row" role="group" aria-label="Agent mode">
+            <label><input type="radio" name="agent-mode" value="normal" checked> Work</label>
+            <label><input type="radio" name="agent-mode" value="adventure"> Adventure Mine</label>
           </div>
           <button id="spawn-agent-btn" type="button">Start Yield Run</button>
           <div id="wallet-yield-card">

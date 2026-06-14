@@ -30,7 +30,7 @@ class PluginContext extends IPluginContext {
    * @returns {Object} stats 只读副本
    */
   getPlayerStats(playerId, playerName) {
-    if (!this._statsManager) throw new Error(`[${this._pluginId}] StatsManager 未初始化`);
+    if (!this._statsManager) throw new Error(`[${this._pluginId}] StatsManager is not initialized`);
     return this._statsManager.getOrCreate(playerId, playerName);
   }
 
@@ -40,7 +40,7 @@ class PluginContext extends IPluginContext {
    * @returns {Object|null}
    */
   getPlayerStatsSnapshot(playerId) {
-    if (!this._statsManager) throw new Error(`[${this._pluginId}] StatsManager 未初始化`);
+    if (!this._statsManager) throw new Error(`[${this._pluginId}] StatsManager is not initialized`);
     return this._statsManager.get(playerId);
   }
 
@@ -51,7 +51,7 @@ class PluginContext extends IPluginContext {
    * @returns {Object} 修改后的 stats
    */
   modifyPlayerStats(playerId, delta) {
-    if (!this._statsManager) throw new Error(`[${this._pluginId}] StatsManager 未初始化`);
+    if (!this._statsManager) throw new Error(`[${this._pluginId}] StatsManager is not initialized`);
     return this._statsManager.modify(playerId, delta);
   }
 
@@ -62,7 +62,7 @@ class PluginContext extends IPluginContext {
    * @returns {Object}
    */
   setPlayerStats(playerId, values) {
-    if (!this._statsManager) throw new Error(`[${this._pluginId}] StatsManager 未初始化`);
+    if (!this._statsManager) throw new Error(`[${this._pluginId}] StatsManager is not initialized`);
     return this._statsManager.set(playerId, values);
   }
 
@@ -73,7 +73,7 @@ class PluginContext extends IPluginContext {
    * @returns {{ success: boolean, log: string }}
    */
   addItem(playerId, item) {
-    if (!this._statsManager) throw new Error(`[${this._pluginId}] StatsManager 未初始化`);
+    if (!this._statsManager) throw new Error(`[${this._pluginId}] StatsManager is not initialized`);
     return this._statsManager.addItem(playerId, item);
   }
 
@@ -85,7 +85,7 @@ class PluginContext extends IPluginContext {
    * @returns {{ success: boolean, item?: Object, log: string }}
    */
   removeItem(playerId, itemKey, count) {
-    if (!this._statsManager) throw new Error(`[${this._pluginId}] StatsManager 未初始化`);
+    if (!this._statsManager) throw new Error(`[${this._pluginId}] StatsManager is not initialized`);
     return this._statsManager.removeItem(playerId, itemKey, count);
   }
 
@@ -96,7 +96,7 @@ class PluginContext extends IPluginContext {
    * @returns {{ success: boolean, log: string, effect?: string }}
    */
   useItem(playerId, itemKey) {
-    if (!this._statsManager) throw new Error(`[${this._pluginId}] StatsManager 未初始化`);
+    if (!this._statsManager) throw new Error(`[${this._pluginId}] StatsManager is not initialized`);
     return this._statsManager.useItem(playerId, itemKey);
   }
 
@@ -107,7 +107,7 @@ class PluginContext extends IPluginContext {
    * @returns {{ success: boolean, log: string }}
    */
   equipItem(playerId, itemKey) {
-    if (!this._statsManager) throw new Error(`[${this._pluginId}] StatsManager 未初始化`);
+    if (!this._statsManager) throw new Error(`[${this._pluginId}] StatsManager is not initialized`);
     return this._statsManager.equip(playerId, itemKey);
   }
 
@@ -118,7 +118,7 @@ class PluginContext extends IPluginContext {
    * @returns {{ success: boolean, log: string }}
    */
   addGold(playerId, amount) {
-    if (!this._statsManager) throw new Error(`[${this._pluginId}] StatsManager 未初始化`);
+    if (!this._statsManager) throw new Error(`[${this._pluginId}] StatsManager is not initialized`);
     return this._statsManager.addGold(playerId, amount);
   }
 
@@ -128,7 +128,7 @@ class PluginContext extends IPluginContext {
    * @returns {string[]} 升级日志
    */
   checkLevelUp(playerId) {
-    if (!this._statsManager) throw new Error(`[${this._pluginId}] StatsManager 未初始化`);
+    if (!this._statsManager) throw new Error(`[${this._pluginId}] StatsManager is not initialized`);
     return this._statsManager.checkLevelUp(playerId);
   }
 

@@ -82,14 +82,14 @@ describe('World Engine (unit)', () => {
 
   it('covers left/right/front/back and all diagonal relative directions', () => {
     const cases = [
-      { dx: -1, dy: -1, facing: 'N', expected: '左前方' },
-      { dx: 0, dy: -1, facing: 'N', expected: '前方' },
-      { dx: 1, dy: -1, facing: 'N', expected: '右前方' },
-      { dx: -1, dy: 0, facing: 'N', expected: '左侧' },
-      { dx: 1, dy: 0, facing: 'N', expected: '右侧' },
-      { dx: -1, dy: 1, facing: 'N', expected: '左后方' },
-      { dx: 0, dy: 1, facing: 'N', expected: '后方' },
-      { dx: 1, dy: 1, facing: 'N', expected: '右后方' },
+      { dx: -1, dy: -1, facing: 'N', expected: 'front-left' },
+      { dx: 0, dy: -1, facing: 'N', expected: 'ahead' },
+      { dx: 1, dy: -1, facing: 'N', expected: 'front-right' },
+      { dx: -1, dy: 0, facing: 'N', expected: 'left' },
+      { dx: 1, dy: 0, facing: 'N', expected: 'right' },
+      { dx: -1, dy: 1, facing: 'N', expected: 'back-left' },
+      { dx: 0, dy: 1, facing: 'N', expected: 'behind' },
+      { dx: 1, dy: 1, facing: 'N', expected: 'back-right' },
     ];
 
     for (const { dx, dy, facing, expected } of cases) {
@@ -98,9 +98,9 @@ describe('World Engine (unit)', () => {
   });
 
   it('rotates relative direction with player facing', () => {
-    assert.equal(describeRelativeDirection(1, 0, 'S'), '左侧');
-    assert.equal(describeRelativeDirection(0, -1, 'E'), '左侧');
-    assert.equal(describeRelativeDirection(0, -1, 'W'), '右侧');
+    assert.equal(describeRelativeDirection(1, 0, 'S'), 'left');
+    assert.equal(describeRelativeDirection(0, -1, 'E'), 'left');
+    assert.equal(describeRelativeDirection(0, -1, 'W'), 'right');
   });
 
 });

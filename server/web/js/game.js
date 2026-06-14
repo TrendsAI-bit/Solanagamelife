@@ -83,11 +83,14 @@
     const activityLogEl = document.getElementById('activity-log');
     const walletInputEl = document.getElementById('wallet-input');
     const petSelectEl = document.getElementById('pet-select');
+    const connectWalletBtn = document.getElementById('connect-wallet-btn');
+    const walletConnectStatusEl = document.getElementById('wallet-connect-status');
     const spawnAgentBtn = document.getElementById('spawn-agent-btn');
     const walletAgentNameEl = document.getElementById('wallet-agent-name');
     const walletSglYieldEl = document.getElementById('wallet-sgl-yield');
     const walletAgentStatusEl = document.getElementById('wallet-agent-status');
     let localWalletAgentId = localStorage.getItem('sgl-agent-id') || '';
+    let connectedWalletAddress = localStorage.getItem('sgl-wallet') || '';
 
     // === 背景音乐 ===
     const bgm = new Audio('assets/musics/36-Village.ogg');
@@ -928,7 +931,7 @@
       if(p.message){const msg=p.message.length>24?p.message.substring(0,24)+'…':p.message;ctx.fillStyle='#dfe6e9';ctx.fillText('💬 '+msg,cx+8,cy+60);}
       // 明示点击后会进入跟随模式，降低交互学习成本。
       ctx.font='10px "Pixelify Sans",sans-serif'; ctx.fillStyle='rgba(116,185,255,0.5)';
-      ctx.textAlign='right'; ctx.fillText('点击跟随',cx+W-6,cy+H-8);
+      ctx.textAlign='right'; ctx.fillText('Follow',cx+W-6,cy+H-8);
       ctx.textAlign='left'; ctx.textBaseline='middle';
     }
 
@@ -1083,7 +1086,7 @@
           const rx=zone.x*sx2,ry=zone.y*sy2,rw=zone.width*sx2,rh=zone.height*sy2;
           if(mouseX>=rx&&mouseX<=rx+rw&&mouseY>=ry&&mouseY<=ry+rh){
             const isResZone = isClickableZone(zone.name);
-            const suffix = isResZone ? ' [点击查看]' : '';
+            const suffix = isResZone ? ' [view]' : '';
             ctx.font='bold 16px "Pixelify Sans",sans-serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
             const nameText = zone.name + suffix;
             const tw=ctx.measureText(nameText).width+20,th=isResZone?42:35,tx=mouseX-15,ty=mouseY-30;
@@ -1092,7 +1095,7 @@
             ctx.fillStyle='#5c4a3d'; ctx.fillText(zone.name,tx+tw/2,ty+th/2-(isResZone?8:0));
             if(isResZone){
               ctx.font='11px "Pixelify Sans",sans-serif'; ctx.fillStyle='#e67e22';
-              ctx.fillText('[点击查看]',tx+tw/2,ty+th/2+10);
+              ctx.fillText('[view]',tx+tw/2,ty+th/2+10);
             }
           }
         });
@@ -1330,7 +1333,12 @@
       const p = portfolio || agent.portfolio || {};
       walletAgentNameEl.textContent = agent?.name || p.name || 'SGL Agent';
       walletSglYieldEl.textContent = `${Number(p.sglYield || p.claimable || agent?.sglYield || 0).toLocaleString()} SGL`;
-      walletAgentStatusEl.textContent = `${Number(p.stakedSol || 0).toFixed(2)} SOL staked · ${Number(p.lpShares || 0).toFixed(2)} LP shares · risk ${Number(p.riskScore || 0)}%`;
+      const mode = p.mode || agent?.mode || 'normal';
+      const modeLabel = mode === 'adventure' ? 'Adventure Mine' : 'Normal Work';
+      const extra = mode === 'adventure'
+        ? ` · ${Number(p.mineAttempts || 0)} mines · ${Number(p.treasureClues || 0)} clues`
+        : ` · ${Number(p.stakedSol || 0).toFixed(2)} SOL · ${Number(p.lpShares || 0).toFixed(2)} LP`;
+      walletAgentStatusEl.textContent = `${modeLabel}${extra} · risk ${Number(p.riskScore || 0)}%`;
     }
 
     function refreshWalletYield() {
@@ -1341,6 +1349,46 @@
           if (data?.portfolio) updateWalletYieldCard(null, data.portfolio);
         })
         .catch(() => {});
+    }
+
+    function selectedAgentMode() {
+      return document.querySelector('input[name="agent-mode"]:checked')?.value || 'normal';
+    }
+
+    function updateWalletConnectionStatus(address) {
+      if (!walletConnectStatusEl || !connectWalletBtn) return;
+      if (address) {
+        walletConnectStatusEl.textContent = `${address.slice(0, 4)}...${address.slice(-4)}`;
+        connectWalletBtn.textContent = 'Wallet Connected';
+      } else {
+        walletConnectStatusEl.textContent = 'Wallet optional';
+        connectWalletBtn.textContent = 'Connect Solana Wallet';
+      }
+    }
+
+    async function connectSolanaWallet() {
+      const provider = window.solana || window.phantom?.solana;
+      if (!provider || !provider.connect) {
+        walletAgentStatusEl.textContent = 'No Solana wallet found. Install Phantom/Solflare or type a wallet handle.';
+        return;
+      }
+      try {
+        connectWalletBtn.disabled = true;
+        connectWalletBtn.textContent = 'Connecting...';
+        const result = await provider.connect();
+        const address = result?.publicKey?.toString?.() || provider.publicKey?.toString?.() || '';
+        if (!address) throw new Error('Wallet did not return a public key.');
+        connectedWalletAddress = address;
+        if (walletInputEl) walletInputEl.value = address;
+        localStorage.setItem('sgl-wallet', address);
+        updateWalletConnectionStatus(address);
+        walletAgentStatusEl.textContent = 'Wallet connected. Choose a mode and start your run.';
+      } catch (err) {
+        walletAgentStatusEl.textContent = err?.message || 'Wallet connection cancelled.';
+        updateWalletConnectionStatus(connectedWalletAddress);
+      } finally {
+        connectWalletBtn.disabled = false;
+      }
     }
 
     function spawnWalletAgent() {
@@ -1356,7 +1404,7 @@
       fetch('/api/solana/agent/spawn', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ wallet, pet: petSelectEl?.value || 'generated' }),
+        body: JSON.stringify({ wallet, pet: petSelectEl?.value || 'generated', mode: selectedAgentMode() }),
       })
         .then(r => r.json())
         .then(data => {
@@ -1365,8 +1413,11 @@
           localStorage.setItem('sgl-agent-id', localWalletAgentId);
           localStorage.setItem('sgl-wallet', wallet);
           localStorage.setItem('sgl-pet', data.agent.pet);
+          localStorage.setItem('sgl-mode', data.agent.mode || selectedAgentMode());
           updateWalletYieldCard(data.agent, data.agent.portfolio);
-          walletAgentStatusEl.textContent = `${data.agent.name} is routing through protocol zones.`;
+          walletAgentStatusEl.textContent = data.agent.mode === 'adventure'
+            ? `${data.agent.name} entered Adventure Mine mode.`
+            : `${data.agent.name} started Normal Work mode.`;
         })
         .catch(err => {
           walletAgentStatusEl.textContent = err.message || 'Launch failed.';
@@ -1379,6 +1430,11 @@
 
     if (walletInputEl) walletInputEl.value = localStorage.getItem('sgl-wallet') || '';
     if (petSelectEl) petSelectEl.value = localStorage.getItem('sgl-pet') || 'generated';
+    const savedMode = localStorage.getItem('sgl-mode') || 'normal';
+    const savedModeInput = document.querySelector(`input[name="agent-mode"][value="${savedMode}"]`);
+    if (savedModeInput) savedModeInput.checked = true;
+    updateWalletConnectionStatus(connectedWalletAddress);
+    if (connectWalletBtn) connectWalletBtn.addEventListener('click', connectSolanaWallet);
     if (spawnAgentBtn) spawnAgentBtn.addEventListener('click', spawnWalletAgent);
     refreshWalletYield();
     setInterval(refreshWalletYield, 5000);
@@ -1395,10 +1451,11 @@
           const leader = (data.players || []).sort((a,b) => (b.claimable || 0) - (a.claimable || 0))[0];
           let html = '';
           html += `<div class="stat-row">TVL: <span class="stat-name">$${Number(t.tvl || 0).toLocaleString()}</span></div>`;
-          html += `<div class="stat-row">Emissions: <span class="stat-name">${Number(t.rewardsPerHour || 0).toLocaleString()} DUST/hr</span></div>`;
-          html += `<div class="stat-row">LP Fees: <span class="stat-name">${Number(t.lpFees || 0).toLocaleString()} DUST</span></div>`;
+          html += `<div class="stat-row">Emissions: <span class="stat-name">${Number(t.rewardsPerHour || 0).toLocaleString()} SGL/hr</span></div>`;
+          html += `<div class="stat-row">LP Fees: <span class="stat-name">${Number(t.lpFees || 0).toLocaleString()} SGL</span></div>`;
           html += `<div class="stat-row">Risk: <span class="stat-name">${Number(t.risk || 0)}%</span></div>`;
-          if (leader) html += `<div class="stat-row">Top wallet: <span class="stat-name">${escapeHtml(leader.name)}</span> (${leader.claimable} DUST)</div>`;
+          html += `<div class="stat-row">Treasure Pool: <span class="stat-name">${Number(t.treasurePool || 0).toLocaleString()} SGL</span></div>`;
+          if (leader) html += `<div class="stat-row">Top wallet: <span class="stat-name">${escapeHtml(leader.name)}</span> (${leader.sglYield || leader.claimable} SGL)</div>`;
           html += `<div class="stat-row">${escapeHtml(t.lastEvent || 'Economy initialized')}</div>`;
           economyContentEl.innerHTML = html;
         })
@@ -1649,10 +1706,10 @@
       const msgEl = document.getElementById('zone-popup-msg');
       if (!popup || !titleEl || !contentEl) return;
 
-      titleEl.textContent = zoneName + ' — 怪谈板';
+      titleEl.textContent = zoneName + ' - Story Board';
       if (msgEl) msgEl.textContent = '';
 
-      contentEl.innerHTML = '<div class="zone-inv-empty">加载中…</div>';
+      contentEl.innerHTML = '<div class="zone-inv-empty">Loading...</div>';
 
       // Position popup first
       popup.style.display = 'block';
@@ -1693,7 +1750,7 @@
     function renderShrineContent(contentEl, msgEl, stories) {
       let html = '<div class="shrine-stories">';
       if (stories.length === 0) {
-        html += '<div class="shrine-empty">还没有怪谈…<br>成为第一个讲述者吧</div>';
+        html += '<div class="shrine-empty">No stories yet.<br>Be the first explorer to write one.</div>';
       } else {
         for (const s of stories) {
           const t = new Date(s.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -1705,8 +1762,8 @@
       }
       html += '</div>';
       html += '<div class="shrine-input-row">';
-      html += '<input class="shrine-input" type="text" maxlength="200" placeholder="写下你的怪谈…">';
-      html += '<button class="shrine-submit">投稿</button>';
+      html += '<input class="shrine-input" type="text" maxlength="200" placeholder="Write a protocol story...">';
+      html += '<button class="shrine-submit">Post</button>';
       html += '</div>';
       contentEl.innerHTML = html;
 
@@ -1725,12 +1782,12 @@
           .then(data => {
             if (data && data.ok) {
               renderShrineContent(contentEl, msgEl, data.stories);
-              if (msgEl) { msgEl.textContent = '怪谈已记录'; setTimeout(() => { msgEl.textContent = ''; }, 2000); }
+              if (msgEl) { msgEl.textContent = 'Story recorded'; setTimeout(() => { msgEl.textContent = ''; }, 2000); }
             } else {
-              if (msgEl) msgEl.textContent = '投稿失败';
+              if (msgEl) msgEl.textContent = 'Post failed';
             }
           })
-          .catch(() => { if (msgEl) msgEl.textContent = '请求失败'; })
+          .catch(() => { if (msgEl) msgEl.textContent = 'Request failed'; })
           .finally(() => { btn.disabled = false; });
       }
       btn.addEventListener('click', submitStory);

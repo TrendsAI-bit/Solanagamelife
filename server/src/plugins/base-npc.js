@@ -46,7 +46,7 @@ async function baseWeightedRandomStrategy(context) {
     if (greetings.length === 0) continue;
     const text = greetings[Math.floor(Math.random() * greetings.length)];
     engine.chat(npc.id, text);
-    return { action: 'greet', detail: `向 ${other.name} 打招呼: "${text}"` };
+    return { action: 'greet', detail: `Greeted ${other.name}: "${text}"` };
   }
 
   // ── 按权重选择行为 ─────────────────────────────────────────────────────
@@ -61,7 +61,7 @@ async function baseWeightedRandomStrategy(context) {
       return doInteract(npc, engine);
     case 'idle':
     default:
-      return { action: 'idle', detail: '静静站着' };
+      return { action: 'idle', detail: 'Standing watch' };
   }
 }
 
@@ -85,22 +85,22 @@ async function doWander(npc, config, engine) {
   if (!result || result.error) return null;
   return {
     action: 'wander',
-    detail: `走了 ${result.pathLength} 步到 (${result.player.x}, ${result.player.y})${result.wasBlocked ? '（被挡住了）' : ''}`,
+    detail: `Walked ${result.pathLength} steps to (${result.player.x}, ${result.player.y})${result.wasBlocked ? ' (blocked)' : ''}`,
   };
 }
 
 function doChat(npc, config, engine) {
   const chats = config.idleChats || [];
-  if (chats.length === 0) return { action: 'idle', detail: '静静站着' };
+  if (chats.length === 0) return { action: 'idle', detail: 'Standing watch' };
   const text = chats[Math.floor(Math.random() * chats.length)];
   engine.chat(npc.id, text);
-  return { action: 'chat', detail: `说: "${text}"` };
+  return { action: 'chat', detail: `Said: "${text}"` };
 }
 
 function doInteract(npc, engine) {
   const result = engine.interact(npc.id);
   if (!result) return null;
-  return { action: 'interact', detail: `在${result.zone}: ${result.action}` };
+  return { action: 'interact', detail: `At ${result.zone}: ${result.action}` };
 }
 
 module.exports = BaseNpcPlugin;

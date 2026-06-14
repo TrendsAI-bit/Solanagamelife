@@ -102,6 +102,7 @@ let treasury = {
   lpFees: 314,
   risk: 18,
   solPrice: 142,
+  treasurePool: 6900,
   lastEvent: 'Genesis liquidity seeded',
 };
 
@@ -190,6 +191,10 @@ function getPlayerPortfolio(playerId, playerName) {
       claimable: 0,
       protocolXp: 0,
       riskScore: 20,
+      mode: 'normal',
+      treasureClues: 0,
+      mineAttempts: 0,
+      treasureShards: 0,
     };
     portfolio.set(playerId, state);
   }
@@ -234,6 +239,10 @@ function summarizePortfolio(state) {
     sglYield: Math.round(state.claimable),
     protocolXp: state.protocolXp,
     riskScore: state.riskScore,
+    mode: state.mode || 'normal',
+    treasureClues: state.treasureClues || 0,
+    mineAttempts: state.mineAttempts || 0,
+    treasureShards: state.treasureShards || 0,
   };
 }
 
@@ -258,6 +267,10 @@ function walletAlias(wallet, pet) {
   };
   const suffix = String(wallet || '').replace(/[^a-z0-9]/gi, '').slice(-4).toUpperCase() || '0000';
   return `${prefixes[pet] || prefixes.generated} ${suffix}`;
+}
+
+function normalizeMode(mode) {
+  return mode === 'adventure' ? 'adventure' : 'normal';
 }
 
 function getNavigableProtocolZones(worldEngine) {
@@ -347,6 +360,7 @@ class SolanaEconomyPlugin extends IPlugin {
           lpFees: Math.round(treasury.lpFees),
           risk: treasury.risk,
           solPrice: treasury.solPrice,
+          treasurePool: Math.round(treasury.treasurePool),
           lastEvent: treasury.lastEvent,
         },
         players,
@@ -354,26 +368,35 @@ class SolanaEconomyPlugin extends IPlugin {
     }, { requireSession: false });
 
     ctx.registerRoute('post', '/solana/agent/spawn', (req, res) => {
-      const { wallet, pet = 'generated' } = req.body || {};
+      const { wallet, pet = 'generated', mode = 'normal' } = req.body || {};
       if (!wallet || String(wallet).trim().length < 4) {
         return res.status(400).json({ success: false, error: 'Add a wallet name or address first.' });
       }
       const cleanWallet = String(wallet).trim().slice(0, 80);
       const petType = ['generated', 'codex', 'claude'].includes(pet) ? pet : 'generated';
+      const playMode = normalizeMode(mode);
       const playerId = walletAgentId(cleanWallet);
       const name = walletAlias(cleanWallet, petType);
       const sprite = ['Boy', 'FighterRed', 'Monk', 'Princess'][walletHash(cleanWallet) % 4];
       const player = req.app.locals.worldEngine.join(playerId, name, sprite, { trackActivity: true });
-      walletAgents.set(playerId, { wallet: cleanWallet, pet: petType, createdAt: Date.now() });
+      walletAgents.set(playerId, { wallet: cleanWallet, pet: petType, mode: playMode, createdAt: Date.now() });
       const state = getPlayerPortfolio(playerId, name);
       state.pet = petType;
-      req.app.locals.worldEngine.recordPluginActivity(playerId, `Booted ${name} as a ${petType} avatar. Autopilot is hunting SGL yield.`, 'defi');
+      state.mode = playMode;
+      req.app.locals.worldEngine.recordPluginActivity(
+        playerId,
+        playMode === 'adventure'
+          ? `Booted ${name} in Adventure Mine mode. Hunting map clues and simulated treasure shards.`
+          : `Booted ${name} in Normal Work mode. Building farms, reading books, and growing SGL yield.`,
+        'defi'
+      );
       res.json({
         success: true,
         agent: {
           id: playerId,
           name,
           pet: petType,
+          mode: playMode,
           sprite,
           x: player.x,
           y: player.y,
@@ -394,15 +417,44 @@ class SolanaEconomyPlugin extends IPlugin {
       for (const agentId of activeAgents) {
         const player = players[agentId];
         if (!player) continue;
+        const walletMeta = walletAgents.get(agentId);
+        const mode = walletMeta?.mode || 'normal';
         let target = agentTargets.get(agentId);
         if (!target || (Math.abs(player.x - target.x) <= 1 && Math.abs(player.y - target.y) <= 1)) {
           if (target && walletAgents.has(agentId)) {
             worldEngine.interact(agentId, null);
+            const state = getPlayerPortfolio(agentId, player.name);
+            state.mode = mode;
+            if (mode === 'adventure') {
+              state.mineAttempts += 1;
+              state.riskScore = Math.min(100, state.riskScore + 4);
+              state.claimable += 3;
+              state.protocolXp += 8;
+              state.treasureClues += Math.random() < 0.35 ? 1 : 0;
+              treasury.treasurePool += 7;
+              const hit = Math.random() < 0.00001;
+              if (hit) {
+                state.treasureShards += 1;
+                state.claimable += 777;
+                treasury.treasurePool = Math.max(0, treasury.treasurePool - 777);
+                treasury.lastEvent = `${player.name} found a legendary simulated treasure shard (+777 SGL)`;
+                worldEngine.recordPluginActivity(agentId, 'Found a legendary simulated treasure shard and banked 777 SGL.', 'defi');
+              } else {
+                treasury.lastEvent = `${player.name} mined a risky map vein (+3 SGL)`;
+                worldEngine.recordPluginActivity(agentId, `Adventure mine attempt ${state.mineAttempts}: found clue dust and +3 SGL.`, 'defi');
+              }
+            }
           }
           target = chooseAgentTarget(agentId, worldEngine);
           if (target) {
             agentTargets.set(agentId, target);
-            worldEngine.recordPluginActivity(agentId, `Routing to ${ZONE_DEFS[target.category].label} for SGL yield`, 'defi');
+            worldEngine.recordPluginActivity(
+              agentId,
+              mode === 'adventure'
+                ? `Following a treasure-map route through ${ZONE_DEFS[target.category].label}`
+                : `Routing to ${ZONE_DEFS[target.category].label} for farm, book, and SGL work`,
+              'defi'
+            );
           }
         }
         if (target) {

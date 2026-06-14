@@ -25,15 +25,15 @@ function toRelativeAxes(dx, dy, facing = 'S') {
 function describeRelativeDirection(dx, dy, facing = 'S') {
   const { side, depth } = toRelativeAxes(dx, dy, facing);
 
-  if (side === 0 && depth === 0) return '附近';
-  if (depth > 0 && side < 0) return '左前方';
-  if (depth > 0 && side === 0) return '前方';
-  if (depth > 0 && side > 0) return '右前方';
-  if (depth === 0 && side < 0) return '左侧';
-  if (depth === 0 && side > 0) return '右侧';
-  if (depth < 0 && side < 0) return '左后方';
-  if (depth < 0 && side === 0) return '后方';
-  return '右后方';
+  if (side === 0 && depth === 0) return 'nearby';
+  if (depth > 0 && side < 0) return 'front-left';
+  if (depth > 0 && side === 0) return 'ahead';
+  if (depth > 0 && side > 0) return 'front-right';
+  if (depth === 0 && side < 0) return 'left';
+  if (depth === 0 && side > 0) return 'right';
+  if (depth < 0 && side < 0) return 'back-left';
+  if (depth < 0 && side === 0) return 'behind';
+  return 'back-right';
 }
 
 module.exports = { describeRelativeDirection };

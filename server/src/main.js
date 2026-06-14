@@ -53,10 +53,10 @@ const aiNpcPlugin = createAiNpcPlugin();
   await pluginManager.loadPlugin(new SolanaEconomyPlugin());
 
   // 加载 AI NPC 插件
-  console.log('[ai-npc] 正在加载 AI NPC 插件...');
+  console.log('[ai-npc] Loading AI NPC plugin...');
   try {
     await pluginManager.loadPlugin(aiNpcPlugin);
-    console.log('[ai-npc] AI NPC 插件加载完成');
+    console.log('[ai-npc] AI NPC plugin loaded');
   } catch (err) {
     console.error('[ai-npc] Failed to load AI NPC plugin:', err.message);
   }
@@ -72,7 +72,7 @@ const aiNpcPlugin = createAiNpcPlugin();
       await pluginManager.loadPlugin(new PluginClass());
     } catch (err) {
       // 可选插件加载失败不阻塞启动
-      console.log(`🔌 可选插件未加载 (${pluginName}): ${err.message}`);
+      console.log(`[plugin] Optional plugin not loaded (${pluginName}): ${err.message}`);
     }
   }
 
@@ -84,10 +84,10 @@ const aiNpcPlugin = createAiNpcPlugin();
       const PluginClass = PluginModule.default || PluginModule;
       await pluginManager.loadPlugin(new PluginClass());
     } catch (err) {
-      console.error(`🔌 插件加载失败 (${pluginPath}):`, err.message);
+      console.error(`[plugin] Failed to load plugin (${pluginPath}):`, err.message);
     }
   }
-  console.log(`🔌 已加载 ${pluginManager.listPlugins().length} 个插件`);
+  console.log(`[plugin] Loaded ${pluginManager.listPlugins().length} plugins`);
 
   // ── 挂载插件注册的路由和中间件到 Express ─────────────────────────────────
   // 中间件
@@ -111,7 +111,7 @@ const aiNpcPlugin = createAiNpcPlugin();
   }
 
   if (pluginRoutes.length > 0) {
-    console.log(`🔌 已挂载 ${pluginRoutes.length} 条插件路由`);
+    console.log(`[plugin] Mounted ${pluginRoutes.length} plugin routes`);
   }
 
   // ── 设置 AI NPC 世界引擎引用 ──────────────────────────────────────────────────────
@@ -131,14 +131,14 @@ app.get('/events', (req, res) => {
 
   const clientId = Date.now();
   sseClients.push({ id: clientId, res });
-  console.log(`📺 新的网页观察者已连接 (ID: ${clientId})`);
+  console.log(`[web] Observer connected (ID: ${clientId})`);
 
   res.write(`data: ${JSON.stringify(worldEngine.sanitizeAllPlayers())}\n\n`);
   res.write(`event: chatHistory\ndata: ${JSON.stringify(worldEngine.getChatHistory())}\n\n`);
 
   req.on('close', () => {
     sseClients = sseClients.filter(c => c.id !== clientId);
-    console.log(`👋 网页观察者已断开 (ID: ${clientId})`);
+    console.log(`[web] Observer disconnected (ID: ${clientId})`);
   });
 });
 
@@ -170,7 +170,7 @@ worldEngine.events.on('activity', (data) => {
 
 // ── 保留 Socket.IO 通道，供观察链路消费状态更新与基础初始化信息 ───────────────
 io.on('connection', (socket) => {
-  console.log('🔗 玩家连接:', socket.id);
+  console.log('[socket] Player connected:', socket.id);
   socket.emit('characterList', worldEngine.getCharacterList());
 });
 
@@ -186,7 +186,7 @@ let isShuttingDown = false;
 async function gracefulShutdown(signal) {
   if (isShuttingDown) return;
   isShuttingDown = true;
-  console.log(`\n🛑 收到 ${signal} 信号，正在关闭...`);
+  console.log(`\n[server] Received ${signal}; shutting down...`);
 
   try {
     // 关闭所有 SSE 连接
@@ -206,18 +206,18 @@ async function gracefulShutdown(signal) {
 
     // 关闭 HTTP 服务器
     server.close(() => {
-      console.log('✅ 服务器已关闭');
+      console.log('[server] Server closed');
       process.exit(0);
     });
 
     // 强制退出超时
     setTimeout(() => {
-      console.log('⚠️ 强制退出');
+      console.log('[server] Forcing exit');
       process.exit(1);
     }, 3000);
 
   } catch (err) {
-    console.error('关闭时出错:', err.message);
+    console.error('Shutdown error:', err.message);
     process.exit(1);
   }
 }

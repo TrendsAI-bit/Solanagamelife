@@ -67,7 +67,7 @@ class NpcBehavior {
         return this._doInteract();
       case 'idle':
       default:
-        return { action: 'idle', detail: '静静站着' };
+        return { action: 'idle', detail: 'Standing watch' };
     }
   }
 
@@ -109,7 +109,7 @@ class NpcBehavior {
       const greetings = this.config.greetings;
       const text = greetings[Math.floor(Math.random() * greetings.length)];
       this.engine.chat(this.playerId, text);
-      return { action: 'greet', detail: `向 ${other.name} 打招呼: "${text}"` };
+      return { action: 'greet', detail: `Greeted ${other.name}: "${text}"` };
     }
 
     return null;
@@ -145,7 +145,7 @@ class NpcBehavior {
     if (!result || result.error) return null;
     return {
       action: 'wander',
-      detail: `走了 ${result.pathLength} 步到 (${result.player.x}, ${result.player.y})${result.wasBlocked ? '（被挡住了）' : ''}`,
+      detail: `Walked ${result.pathLength} steps to (${result.player.x}, ${result.player.y})${result.wasBlocked ? ' (blocked)' : ''}`,
     };
   }
 
@@ -156,7 +156,7 @@ class NpcBehavior {
     const chats = this.config.idleChats;
     const text = chats[Math.floor(Math.random() * chats.length)];
     this.engine.chat(this.playerId, text);
-    return { action: 'chat', detail: `说: "${text}"` };
+    return { action: 'chat', detail: `Said: "${text}"` };
   }
 
   /**
@@ -165,7 +165,7 @@ class NpcBehavior {
   _doInteract() {
     const result = this.engine.interact(this.playerId);
     if (!result) return null;
-    return { action: 'interact', detail: `在${result.zone}: ${result.action}` };
+    return { action: 'interact', detail: `At ${result.zone}: ${result.action}` };
   }
 
   /**

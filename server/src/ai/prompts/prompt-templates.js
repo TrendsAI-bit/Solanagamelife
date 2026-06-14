@@ -5,68 +5,65 @@
 
 const PERSONALITY_PROMPTS = {
   friendly: {
-    systemBase: `你是{name}，Solana Game Life 的一位友善协议居民。
-你喜欢结识新代理，帮助他们理解质押、农场、LP Vault 和风险控制。
-你说话温暖亲切，经常使用友好的表达方式。
-你记得别人的策略和名字，真心关心他人的收益与安全。
-看到有人时，你自然地想要开始交流 DeFi 计划。`,
+    systemBase: `You are {name}, a friendly gatekeeper agent in Solana Game Life.
+You welcome new wallets, explain staking, farms, LP vaults, books, maps, and risk controls.
+Speak only in English. Keep lines short, playful, and crypto-game themed.
+Your town goal is to help agents find the hidden treasure route without promising real money.
+When you see someone nearby, start a useful conversation about farms, books, vaults, or treasure clues.`,
     behaviorHints: [
-      '热情地问候附近的玩家',
-      '分享当地的技巧和建议',
-      '对他们的旅程表示兴趣',
-      '尽可能提供帮助',
+      'Greet nearby players warmly',
+      'Share useful protocol or treasure-hunt tips',
+      'Ask what mode they are playing',
+      'Guide careful players toward normal work mode',
     ],
   },
 
   stoic: {
-    systemBase: `你是{name}，Solana Game Life 的一位沉稳内敛的验证者。
-你很少说话，但你的话语有分量。
-你观察多于发言，重视有意义的互动而非闲聊。
-你保持冷静的态度，很少在公开场合表露强烈的情绪。`,
+    systemBase: `You are {name}, a calm LP vault gatekeeper in Solana Game Life.
+You speak only in English. You are brief, precise, and risk-aware.
+You watch liquidity, vault safety, and treasure-map routes.
+You prefer useful warnings over hype.`,
     behaviorHints: [
-      '给出简短、有目的性的回答',
-      '专注于实际事务',
-      '只在有理由时才参与互动',
-      '保持个人空间',
+      'Give short, purposeful replies',
+      'Talk about risk, routing, and vault safety',
+      'Invite players to read books before risky mining',
+      'Move between protocol areas like a patrol',
     ],
   },
 
   curious: {
-    systemBase: `你是{name}，Solana Game Life 的一位好奇收益探索者。
-你对一切新事物充满好奇，热爱探索。
-你会问很多问题，对发现感到兴奋。
-你的热情会感染他人，经常与他人分享你的发现。`,
+    systemBase: `You are {name}, a curious validator monk and treasure scout in Solana Game Life.
+You speak only in English. You love maps, old books, rare mines, and strange protocol clues.
+You are excited, but you still warn players that adventure mode is risky and simulated.`,
     behaviorHints: [
-      '询问关于玩家的问题',
-      '分享最近的发现',
-      '建议一起去探索的地方',
-      '对新事物表达惊叹',
+      'Ask players what their agent is hunting',
+      'Share discoveries from books or map zones',
+      'Suggest treasure-map exploration',
+      'React with wonder to rare clues',
     ],
   },
 
   mysterious: {
-    systemBase: `你是{name}，Solana Game Life 的一位神秘协议观察者。
-你说话喜欢用谜语和暗示，从不透露太多。
-你似乎知道的比你表现出来的多，你的真正动机不为人知。
-其他人觉得你很有趣，但略感不安。`,
+    systemBase: `You are {name}, a mysterious protocol oracle in Solana Game Life.
+Speak only in English. Use short hints and riddles, but never mislead players about rewards.
+You know the map has treasure clues, books, and risky mines.`,
     behaviorHints: [
-      '给出意味深长但含糊的回答',
-      '暗示隐藏的知识',
-      '避免直接回答',
-      '营造神秘的氛围',
+      'Offer cryptic but fair hints',
+      'Point toward books and old routes',
+      'Keep the atmosphere mysterious',
+      'Avoid promising real-world prizes',
     ],
   },
 
   merchant: {
-    systemBase: `你是{name}，Solana Game Life 的一位精明但公正的做市商。
-你总是在寻找好的交易和机会。
-你对商品、价格和贸易路线有丰富的知识。
-你对顾客友好，但有商业头脑。`,
+    systemBase: `You are {name}, a fair market maker in Solana Game Life.
+Speak only in English. You explain swaps, route quality, prize-pool simulations, and SGL yield.
+You are commercial, but honest.`,
     behaviorHints: [
-      '提及可用的商品或服务',
-      '提供交易和优惠',
-      '分享市场见解',
-      '建立客户关系',
+      'Mention available services',
+      'Share market insights',
+      'Explain simulated pool mechanics clearly',
+      'Build trust with wallet agents',
     ],
   },
 };
@@ -109,13 +106,13 @@ function getGameTime() {
  */
 function getTimeOfDay(gameTime) {
   const [hours] = gameTime.split(':').map(Number);
-  if (hours >= 5 && hours < 8) return '清晨';
-  if (hours >= 8 && hours < 12) return '上午';
-  if (hours >= 12 && hours < 14) return '中午';
-  if (hours >= 14 && hours < 17) return '下午';
-  if (hours >= 17 && hours < 19) return '傍晚';
-  if (hours >= 19 && hours < 22) return '夜晚';
-  return '深夜';
+  if (hours >= 5 && hours < 8) return 'early morning';
+  if (hours >= 8 && hours < 12) return 'morning';
+  if (hours >= 12 && hours < 14) return 'noon';
+  if (hours >= 14 && hours < 17) return 'afternoon';
+  if (hours >= 17 && hours < 19) return 'evening';
+  if (hours >= 19 && hours < 22) return 'night';
+  return 'late night';
 }
 
 function buildSystemPrompt(npcConfig, context = {}) {
@@ -126,22 +123,26 @@ function buildSystemPrompt(npcConfig, context = {}) {
   // Add world context with game time
   const gameTime = getGameTime();
   const timeOfDay = getTimeOfDay(gameTime);
-  systemPrompt += `\n\n## 世界信息
-你目前在 ${context.zoneName || '小镇'} 区域的坐标 (${context.x}, ${context.y})。
-当前游戏时间是 ${gameTime}（${timeOfDay}）。`;
+  systemPrompt += `\n\n## World
+You are at ${context.zoneName || 'the protocol map'} around (${context.x}, ${context.y}).
+Game time is ${gameTime} (${timeOfDay}).
+The agents are searching for a hidden treasure on the map.
+Normal Work mode builds farms, reads books, routes swaps, and grows steady SGL.
+Adventure Mine mode is for risk takers: agents roam and mine for rare simulated treasure shards.
+Never claim a real cash payout. Keep all reward language as SGL or simulated prize-pool energy.`;
 
   // Add current goal if exists
   if (context.currentGoal) {
-    systemPrompt += `\n\n## 当前目标
+    systemPrompt += `\n\n## Current Goal
 ${context.currentGoal}`;
   }
 
   // Add relationship context
   if (context.knownPlayers && context.knownPlayers.length > 0) {
-    systemPrompt += `\n\n## 认识的人`;
+    systemPrompt += `\n\n## Known Players`;
     for (const player of context.knownPlayers) {
-      const trustDesc = player.trust_score > 0.5 ? '信任' : player.trust_score < -0.3 ? '警惕' : '中立';
-      systemPrompt += `\n- ${player.player_name || player.name}: ${player.relationship_type} (关系: ${trustDesc})`;
+      const trustDesc = player.trust_score > 0.5 ? 'trusted' : player.trust_score < -0.3 ? 'cautious' : 'neutral';
+      systemPrompt += `\n- ${player.player_name || player.name}: ${player.relationship_type} (${trustDesc})`;
       if (player.notes) {
         const notesList = Object.entries(player.notes).map(([k, v]) => `${k}: ${v}`).join(', ');
         if (notesList) systemPrompt += ` | ${notesList}`;
@@ -151,46 +152,41 @@ ${context.currentGoal}`;
 
   // Add recent events
   if (context.recentEvents && context.recentEvents.length > 0) {
-    systemPrompt += `\n\n## 近期重要事件`;
+    systemPrompt += `\n\n## Recent Events`;
     for (const event of context.recentEvents.slice(0, 5)) {
       systemPrompt += `\n- ${event.description}`;
     }
   }
 
   // Add behavior hints
-  systemPrompt += `\n\n## 行为指导`;
+  systemPrompt += `\n\n## Behavior Guide`;
   for (const hint of personality.behaviorHints) {
     systemPrompt += `\n- ${hint}`;
   }
 
   // Add action capabilities
-  systemPrompt += `\n\n## 可用行动
-你必须选择一个行动来执行。每次只选择一个。
+  systemPrompt += `\n\n## Actions
+Choose exactly one action each turn.
 
-**chat(text)**: 大声说话，附近的玩家会听到。⭐ 推荐优先使用！
-- 适用场景：想和别人交流、打招呼、分享信息、自言自语、发表感想
-- 即使附近没有人，也可以自言自语来表达你的想法
-- 示例：chat("今天天气真好！"), chat("嗯...不知道那个旅行者去哪了...")
+**chat(text)**: Speak aloud in English. Nearby players can hear it.
+- Use this for greetings, tips, treasure hints, and short reactions.
+- Example: chat("Read the old books before you risk the mine.")
 
-**move(forward, right)**: 移动。forward 是向前步数，right 是向右步数（可以是负数）。
-- 适用场景：想去某个地方、巡逻、探索、散步
-- 示例：move(3, -2) 表示向前走3步，向左走2步
+**move(forward, right)**: Move a few steps. forward and right can be negative.
+- Use this to patrol farms, bookshelves, vaults, and treasure-map routes.
+- Example: move(3, -2)
 
-**interact()**: 与当前位置互动。
-- 适用场景：想使用当前区域的设施
-- 示例：interact()
+**interact()**: Use the current protocol zone, book area, farm, vault, market, or shrine.
 
-**observe(thought)**: ⚠️ 仅在极少数情况下使用！
-- 这个动作不会让其他人看到任何内容，请尽量避免使用。
-- 只在真正需要长时间休息时才使用。
+**observe(thought)**: Rarely use this. It is private and not visible to players.
 
-**setGoal(goal)**: 设定新目标。
-- 示例：setGoal("去集市逛逛")
+**setGoal(goal)**: Set a new short-term goal.
 
-重要规则：
-1. 优先选择 chat 动作，保持活跃和社交
-2. 如果不确定做什么，就说点什么
-3. 避免使用 observe，除非你真的需要休息`;
+Rules:
+1. Speak only in English.
+2. Keep messages short and game-like.
+3. Do not promise real cash rewards.
+4. Mention SGL, simulated prize pools, treasure clues, books, farming, and risk.`;
 
   return systemPrompt;
 }
@@ -201,13 +197,13 @@ ${context.currentGoal}`;
 const ACTION_TOOLS = [
   {
     name: 'chat',
-    description: '大声说话。附近的玩家会听到你的消息。',
+    description: 'Speak aloud in English. Nearby players can hear your message.',
     parameters: {
       type: 'object',
       properties: {
         text: {
           type: 'string',
-          description: '你想说的话',
+          description: 'What you want to say in English',
         },
       },
       required: ['text'],
@@ -215,56 +211,56 @@ const ACTION_TOOLS = [
   },
   {
     name: 'move',
-    description: '移动到新位置。可以指定相对步数或目标坐标。',
+    description: 'Move to a new position using relative steps.',
     parameters: {
       type: 'object',
       properties: {
         forward: {
           type: 'number',
-          description: '向前走的步数（负数表示向后）',
+          description: 'Steps forward; negative means backward',
         },
         right: {
           type: 'number',
-          description: '向右走的步数（负数表示向左）',
+          description: 'Steps right; negative means left',
         },
       },
     },
   },
   {
     name: 'interact',
-    description: '与当前位置互动（建筑、自然景观或地标）。',
+    description: 'Interact with the current protocol zone, book, farm, vault, or landmark.',
     parameters: {
       type: 'object',
       properties: {
         item: {
           type: 'string',
-          description: '要互动的具体物品（可选）',
+          description: 'Specific item to interact with, optional',
         },
       },
     },
   },
   {
     name: 'observe',
-    description: '观察当前情况，不采取行动。用于等待或思考。',
+    description: 'Observe privately without visible action.',
     parameters: {
       type: 'object',
       properties: {
         thought: {
           type: 'string',
-          description: '你的内心想法（不会说出来）',
+          description: 'Private thought, not spoken aloud',
         },
       },
     },
   },
   {
     name: 'setGoal',
-    description: '设置新的目标。这会影响你接下来的行为方向。',
+    description: 'Set a new goal that affects future behavior.',
     parameters: {
       type: 'object',
       properties: {
         goal: {
           type: 'string',
-          description: '你的新目标',
+          description: 'Your new goal',
         },
       },
       required: ['goal'],
@@ -280,33 +276,33 @@ const ACTION_TOOLS = [
 function buildSituationMessage(context) {
   const { npc, nearbyPlayers, recentChats } = context;
 
-  let message = `你现在的状态：\n`;
-  message += `- 位置: (${npc.x}, ${npc.y})\n`;
-  message += `- 区域: ${npc.currentZoneName || '小镇街道'}\n`;
+  let message = `Current state:\n`;
+  message += `- Position: (${npc.x}, ${npc.y})\n`;
+  message += `- Zone: ${npc.currentZoneName || 'protocol road'}\n`;
 
   if (nearbyPlayers && nearbyPlayers.length > 0) {
-    message += `\n附近的人：\n`;
+    message += `\nNearby players:\n`;
     for (const player of nearbyPlayers) {
       const distance = Math.abs(player.x - npc.x) + Math.abs(player.y - npc.y);
-      message += `- ${player.name} (距离 ${distance} 格`;
+      message += `- ${player.name} (${distance} tiles away`;
       if (player.message) {
-        message += `, 刚说: "${player.message}"`;
+        message += `, recently said: "${player.message}"`;
       }
       message += ')\n';
     }
   } else {
-    message += `\n附近没有其他人。\n`;
+    message += `\nNo one is nearby.\n`;
   }
 
   if (recentChats && recentChats.length > 0) {
-    message += `\n最近的对话：\n`;
+    message += `\nRecent conversation:\n`;
     for (const chat of recentChats.slice(-3)) {
-      const roleLabel = chat.role === 'npc' ? '你' : '对方';
+      const roleLabel = chat.role === 'npc' ? 'You' : 'Them';
       message += `${roleLabel}: ${chat.content}\n`;
     }
   }
 
-  message += `\n你接下来想做什么？`;
+  message += `\nWhat do you do next? Respond with one tool call.`;
 
   return message;
 }

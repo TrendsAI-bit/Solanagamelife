@@ -192,7 +192,7 @@ class AiNpcPlugin extends IPlugin {
       this.memoryStore.recordEvent(
         'global',
         'player_interaction',
-        `${entry.name} 在 ${entry.zone}: ${entry.action}`,
+        `${entry.name} at ${entry.zone}: ${entry.action}`,
         entry.playerId,
         0.3
       );
@@ -243,7 +243,7 @@ class AiNpcPlugin extends IPlugin {
         recentChats,
       });
 
-      console.log(`[ai-npc] 🤖 ${config.name} 正在调用 AI...`);
+      console.log(`[ai-npc] ${config.name} is calling AI...`);
 
       // Call AI
       const response = await this.client.generate({
@@ -254,7 +254,7 @@ class AiNpcPlugin extends IPlugin {
       });
 
       // Log AI response for debugging
-      console.log(`[ai-npc] 🤖 ${config.name} AI 响应:`, {
+      console.log(`[ai-npc] ${config.name} AI response:`, {
         hasContent: !!response.content,
         hasToolCalls: !!(response.toolCalls && response.toolCalls.length > 0),
         toolCallName: response.toolCalls?.[0]?.name,
@@ -284,17 +284,18 @@ class AiNpcPlugin extends IPlugin {
     if (!toolCalls || toolCalls.length === 0) {
       if (content && content.trim()) {
         const text = content.trim();
-        const looksLikeDialogue = !text.includes('我想') &&
-          !text.includes('应该') &&
-          !text.includes('或许') &&
+        const lowerText = text.toLowerCase();
+        const looksLikeDialogue = !lowerText.includes('i think') &&
+          !lowerText.includes('should') &&
+          !lowerText.includes('maybe') &&
           text.length < 100;
 
         if (looksLikeDialogue) {
           engine.chat(npcId, text);
-          return { action: 'chat', detail: `说: "${text.substring(0, 50)}${text.length > 50 ? '...' : ''}"` };
+          return { action: 'chat', detail: `Said: "${text.substring(0, 50)}${text.length > 50 ? '...' : ''}"` };
         }
       }
-      return { action: 'observe', detail: '思考中...' };
+      return { action: 'observe', detail: 'Thinking...' };
     }
 
     // Execute the tool call
@@ -309,9 +310,9 @@ class AiNpcPlugin extends IPlugin {
           engine.chat(npcId, args.text);
           // Record as activity
           if (worldEngine) {
-            worldEngine.recordPluginActivity(npcId, `说: ${args.text.substring(0, 50)}${args.text.length > 50 ? '...' : ''}`, 'say');
+            worldEngine.recordPluginActivity(npcId, `Said: ${args.text.substring(0, 50)}${args.text.length > 50 ? '...' : ''}`, 'say');
           }
-          return { action: 'chat', detail: `说: "${args.text.substring(0, 50)}${args.text.length > 50 ? '...' : ''}"` };
+          return { action: 'chat', detail: `Said: "${args.text.substring(0, 50)}${args.text.length > 50 ? '...' : ''}"` };
         }
         break;
 
@@ -324,11 +325,11 @@ class AiNpcPlugin extends IPlugin {
           if (result && !result.error) {
             // Record as activity
             if (worldEngine) {
-              worldEngine.recordPluginActivity(npcId, `移动到 (${result.player.x}, ${result.player.y})`, 'move');
+              worldEngine.recordPluginActivity(npcId, `Moved to (${result.player.x}, ${result.player.y})`, 'move');
             }
-            return { action: 'move', detail: `移动到 (${result.player.x}, ${result.player.y})` };
+            return { action: 'move', detail: `Moved to (${result.player.x}, ${result.player.y})` };
           }
-          return { action: 'move', detail: `移动失败` };
+          return { action: 'move', detail: 'Move failed' };
         }
         break;
 
@@ -341,7 +342,7 @@ class AiNpcPlugin extends IPlugin {
           }
           return { action: 'interact', detail: `${result.action}: ${result.result}` };
         }
-        return { action: 'interact', detail: '此处没有可互动的对象' };
+        return { action: 'interact', detail: 'No interactable protocol object here' };
 
       case 'observe':
         // Record observe as an activity so it shows up in frontend
@@ -349,13 +350,13 @@ class AiNpcPlugin extends IPlugin {
           const allPlayers = worldEngine.getAllPlayers();
           const npc = allPlayers[npcId];
           if (npc) {
-            worldEngine.recordPluginActivity(npcId, `观察${npc.currentZoneName ? ' ' + npc.currentZoneName : ''}: ${args.thought}`, 'ai-npc');
+            worldEngine.recordPluginActivity(npcId, `Observed${npc.currentZoneName ? ' ' + npc.currentZoneName : ''}: ${args.thought}`, 'ai-npc');
           }
         }
-        return { action: 'observe', detail: args.thought || '静静观察' };
+        return { action: 'observe', detail: args.thought || 'Watching the protocol map' };
 
       case 'setGoal':
-        return { action: 'setGoal', detail: `设定目标: ${args.goal}` };
+        return { action: 'setGoal', detail: `Set goal: ${args.goal}` };
     }
 
     return null;

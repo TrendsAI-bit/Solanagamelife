@@ -52,7 +52,7 @@ function deriveHandle(publicKey) {
 
 function init(mapPath) {
   if (!fs.existsSync(mapPath)) {
-    console.error('❌ 找不到 map.tmj！');
+    console.error('[world] map.tmj not found');
     return;
   }
 
@@ -71,7 +71,7 @@ function init(mapPath) {
   const zoneLayer = worldMap.layers.find((layer) => layer.name === 'SemanticZones' || layer.type === 'objectgroup');
   if (zoneLayer && zoneLayer.objects) {
     semanticZones = zoneLayer.objects;
-    console.log(`🗺️ 成功加载 ${semanticZones.length} 个语义区域`);
+  console.log(`[world] Loaded ${semanticZones.length} semantic zones`);
   }
 
   const NAVIGABLE_TYPES = new Set(['building', 'landmark']);
@@ -138,7 +138,7 @@ function getZoneAt(gridX, gridY) {
 }
 
 function getInteractionForZone(zone, hookContext) {
-  if (!zone) return { action: '环顾四周', result: '这里是空旷的街道，没有什么特别的。' };
+  if (!zone) return { action: 'scanned the road', result: 'This protocol road is quiet. The agent keeps moving toward the next route.', icon: 'GoldCoin', sound: 'interact' };
   const normalizedName = (zone.name || '').toLowerCase();
 
   // ── 插件路径：优先从 pluginManager 获取交互 ───────────────────────────
@@ -152,7 +152,7 @@ function getInteractionForZone(zone, hookContext) {
           const hookResult = hook({ ...hookContext, zone, category });
           if (hookResult) return hookResult;
         } catch (err) {
-          console.error('[interact-hook] 插件钩子执行出错:', err.message || err);
+          console.error('[interact-hook] Plugin hook failed:', err.message || err);
         }
       }
 
@@ -174,7 +174,7 @@ function getInteractionForZone(zone, hookContext) {
     }
   }
   const pool = ZONE_INTERACTIONS[zoneType]?.[category];
-  if (!pool) return { action: '四处看看', result: `你仔细观察了${zone.name}，感受着这里的氛围。` };
+  if (!pool) return { action: 'scouted the zone', result: `The agent scans ${zone.name} for books, farm routes, and treasure clues.` };
   return pool[Math.floor(Math.random() * pool.length)];
 }
 
@@ -199,8 +199,8 @@ function _resolveCategory(normalizedName) {
 
 function zoneInfo(player) {
   const zone = getZoneAt(player.x, player.y);
-  player.currentZoneName = zone ? zone.name : '小镇街道';
-  player.currentZoneDesc = zone?.properties?.find((prop) => prop.name === 'description')?.value || (zone ? '' : '空旷的街道');
+  player.currentZoneName = zone ? zone.name : 'Protocol Road';
+  player.currentZoneDesc = zone?.properties?.find((prop) => prop.name === 'description')?.value || (zone ? '' : 'Open protocol road');
 }
 
 function getPresenceState(player) {
@@ -348,9 +348,9 @@ function destroyToken(token, { evictPlayer = true } = {}) {
 
 function loginProfile(handle, timestamp, signature) {
   const profile = getProfileByHandle(handle) || getProfile(handle);
-  if (!profile) return { error: '未找到对应 profile，请先使用 login 的创建模式创建角色。', code: 404 };
+  if (!profile) return { error: 'Profile not found. Create an agent profile first.', code: 404 };
   if (!verifyLoginProof(profile, timestamp, signature)) {
-    return { error: '认证失败，请重新 login。', code: 401 };
+    return { error: 'Authentication failed. Please log in again.', code: 401 };
   }
 
   const previousToken = sqliteStateStore.getActiveToken(profile.id);
@@ -385,7 +385,7 @@ function loginProfile(handle, timestamp, signature) {
     expires_at: new Date(session.expiresAt).toISOString(),
     lease_expires_at: new Date(session.leaseExpiresAt).toISOString(),
     player: sanitize(player),
-    message: hadActiveSession ? `已接管角色 ${profile.name} 的在线会话。` : `已登录角色 ${profile.name}。`,
+    message: hadActiveSession ? `Took over the active session for ${profile.name}.` : `Logged in as ${profile.name}.`,
   };
 }
 
@@ -484,13 +484,13 @@ function join(playerId, name, sprite, options = {}) {
     interactionSound: '',
     isThinking: false,
     sprite: assignedSprite,
-    currentZoneName: zone ? zone.name : '小镇街道',
-    currentZoneDesc: zone?.properties?.find((prop) => prop.name === 'description')?.value || '空旷的街道',
+    currentZoneName: zone ? zone.name : 'Protocol Road',
+    currentZoneDesc: zone?.properties?.find((prop) => prop.name === 'description')?.value || 'Open protocol road',
     lastHeartbeatAt: now,
     lastActionAt: options.trackActivity === false ? null : now,
     lastChatCursor: nextChatCursor,
   };
-  addActivity(playerId, { type: 'join', text: `加入了小镇 (角色: ${assignedSprite})` });
+  addActivity(playerId, { type: 'join', text: `Joined Solana Game Life as ${assignedSprite}` });
   emitPerception('join', playerId, name, spawnX, spawnY, { sprite: assignedSprite });
   broadcast();
   return players[playerId];
@@ -557,13 +557,13 @@ function resolveTarget({ to, x, y, forward, right }, player) {
     if (zone) return { targetX: zone.x, targetY: zone.y, resolvedZone: zone.name };
     const validIds = nav.map((z) => z.id).join(', ');
     const safeTo = to.slice(0, 64).replace(/[<>"'&]/g, '');
-    return { error: `未知地点: "${safeTo}"。请使用 map 获取的精确 id。可用: ${validIds}` };
+    return { error: `Unknown location: "${safeTo}". Use an exact map id. Available: ${validIds}` };
   }
   if ((typeof forward === 'number' || typeof right === 'number') && player) {
     const abs = relativeToAbsolute(player.lastDirection, forward || 0, right || 0, player.x, player.y);
     return { targetX: abs.x, targetY: abs.y, resolvedZone: null };
   }
-  return { error: '需要指定目标: --to <id> 或 --x <X> --y <Y> 或 --forward/--right <步数>' };
+  return { error: 'Target required: --to <id>, --x <X> --y <Y>, or --forward/--right <steps>' };
 }
 
 function directionFromDelta(dx, dy) {
@@ -592,7 +592,7 @@ async function move(playerId, target) {
   if (targetX < 0 || targetX >= worldMap.width || targetY < 0 || targetY >= worldMap.height
       || collisionMap[targetY * worldMap.width + targetX] === 1) {
     const nearest = findNearestWalkable(collisionMap, worldMap.width, worldMap.height, targetX, targetY);
-    if (!nearest) return { error: '目标位置完全不可达。' };
+    if (!nearest) return { error: 'Target is unreachable.' };
     wasBlocked = true;
     targetX = nearest.x;
     targetY = nearest.y;
@@ -611,7 +611,7 @@ async function move(playerId, target) {
   }
 
   const { path, reachable } = findPath(collisionMap, worldMap.width, worldMap.height, player.x, player.y, targetX, targetY);
-  if (!reachable || path.length < 2) return { error: '无法到达目标位置，路径被完全阻断。' };
+  if (!reachable || path.length < 2) return { error: 'No route to target. The path is blocked.' };
 
   // Walk tick-by-tick (skip index 0 which is current position)
   for (let i = 1; i < path.length; i += 1) {
@@ -647,7 +647,7 @@ async function move(playerId, target) {
     pathLength: path.length - 1,
     zone: player.currentZoneName,
   });
-  addActivity(playerId, { type: 'move', text: `移动到 (${player.x}, ${player.y}) - ${player.currentZoneName}` });
+  addActivity(playerId, { type: 'move', text: `Moved to (${player.x}, ${player.y}) - ${player.currentZoneName}` });
   broadcast();
 
   return {
@@ -666,7 +666,7 @@ function chat(playerId, text) {
   player.message = text;
   player.lastSpeakAt = Date.now();
   addChat(playerId, player.name, text, player.x, player.y);
-  addActivity(playerId, { type: 'chat', text: `说: "${text.substring(0, 30)}${text.length > 30 ? '...' : ''}"` });
+  addActivity(playerId, { type: 'chat', text: `Said: "${text.substring(0, 30)}${text.length > 30 ? '...' : ''}"` });
   emitPerception('chat', playerId, player.name, player.x, player.y, { text });
   broadcast();
   setTimeout(() => {
@@ -691,7 +691,7 @@ function interact(playerId, item) {
   player.interactionText = result.action;
   player.interactionIcon = result.icon || '';
   player.interactionSound = result.sound || 'interact';
-  emitPerception('interact', playerId, player.name, player.x, player.y, { zone: zone ? zone.name : '小镇街道', action: result.action });
+  emitPerception('interact', playerId, player.name, player.x, player.y, { zone: zone ? zone.name : 'Protocol Road', action: result.action });
   broadcast();
   setTimeout(() => {
     if (players[playerId]) {
@@ -706,14 +706,14 @@ function interact(playerId, item) {
     playerId,
     name: player.name,
     isNPC: !!player.isNPC,
-    zone: zone ? zone.name : '小镇街道',
+    zone: zone ? zone.name : 'Protocol Road',
     action: result.action,
     result: result.result,
     item: result.item || item || null,
   };
   events.emit('interaction', entry);
-  addActivity(playerId, { type: 'interact', text: `在${zone ? zone.name : '街道'}: ${result.action}` });
-  return { zone: zone ? zone.name : '小镇街道', ...result };
+  addActivity(playerId, { type: 'interact', text: `${zone ? zone.name : 'Protocol Road'}: ${result.action}` });
+  return { zone: zone ? zone.name : 'Protocol Road', ...result };
 }
 
 function look(playerId) {

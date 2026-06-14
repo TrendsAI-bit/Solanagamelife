@@ -30,12 +30,12 @@ class RequestContext {
     if (token) {
       const session = worldEngine.getTokenSession(token, { touchLease });
       if (!session) {
-        if (required) return { handle: null, error: '登录已失效，请重新 login。' };
+        if (required) return { handle: null, error: 'Your login expired. Please log in again.' };
         return { handle: null, error: null };
       }
       return { handle: new RequestContext({ token, session }), error: null };
     }
-    if (required) return { handle: null, error: '登录已失效，请重新 login。' };
+    if (required) return { handle: null, error: 'Your login expired. Please log in again.' };
     return { handle: null, error: null };
   }
 }

@@ -130,7 +130,7 @@ class StatsManager {
    */
   addItem(playerId, item) {
     if (!item || !item.key || !item.name) {
-      return { success: false, log: '无效的物品' };
+      return { success: false, log: 'Invalid item' };
     }
     const stats = this.getOrCreate(playerId);
     // 可叠加物品检查
@@ -139,12 +139,12 @@ class StatsManager {
       if (existing) {
         existing.count = (existing.count || 1) + (item.count || 1);
         this._notifyChange(playerId, 'addItem', item);
-        return { success: true, log: `获得 ${item.name} x${item.count || 1} (共 ${existing.count})` };
+        return { success: true, log: `Gained ${item.name} x${item.count || 1} (total ${existing.count})` };
       }
     }
     stats.inventory.push({ ...item, count: item.count || 1 });
     this._notifyChange(playerId, 'addItem', item);
-    return { success: true, log: `获得 ${item.name}` };
+    return { success: true, log: `Gained ${item.name}` };
   }
 
   /**
@@ -156,21 +156,21 @@ class StatsManager {
    */
   removeItem(playerId, itemKey, count = 1) {
     const stats = this._stats.get(playerId);
-    if (!stats) return { success: false, log: '玩家不存在' };
+    if (!stats) return { success: false, log: 'Player not found' };
 
     const idx = stats.inventory.findIndex(i => i.key === itemKey);
-    if (idx === -1) return { success: false, log: '背包中没有该物品' };
+    if (idx === -1) return { success: false, log: 'Item is not in the inventory' };
 
     const item = stats.inventory[idx];
     if (item.stackable && (item.count || 1) > count) {
       item.count -= count;
       this._notifyChange(playerId, 'removeItem', { key: itemKey, count });
-      return { success: true, item: { ...item }, log: `使用了 ${item.name} x${count}` };
+      return { success: true, item: { ...item }, log: `Used ${item.name} x${count}` };
     }
 
     stats.inventory.splice(idx, 1);
     this._notifyChange(playerId, 'removeItem', { key: itemKey, count });
-    return { success: true, item, log: `失去了 ${item.name}` };
+    return { success: true, item, log: `Lost ${item.name}` };
   }
 
   /**
@@ -181,13 +181,13 @@ class StatsManager {
    */
   useItem(playerId, itemKey) {
     const stats = this._stats.get(playerId);
-    if (!stats) return { success: false, log: '玩家不存在' };
+    if (!stats) return { success: false, log: 'Player not found' };
 
     const idx = stats.inventory.findIndex(i => i.key === itemKey);
-    if (idx === -1) return { success: false, log: '背包中没有该物品' };
+    if (idx === -1) return { success: false, log: 'Item is not in the inventory' };
 
     const item = stats.inventory[idx];
-    if (item.type !== 'consumable') return { success: false, log: '该物品不可使用' };
+    if (item.type !== 'consumable') return { success: false, log: 'This item cannot be used' };
 
     // 移除消耗品
     if (item.stackable && (item.count || 1) > 1) {
@@ -201,25 +201,25 @@ class StatsManager {
       const healed = Math.min(item.value || 0, stats.maxHp - stats.hp);
       stats.hp += healed;
       this._notifyChange(playerId, 'useItem', item);
-      return { success: true, log: `使用 ${item.name}，恢复 ${healed} HP (HP: ${stats.hp}/${stats.maxHp})` };
+      return { success: true, log: `Used ${item.name}, restored ${healed} HP (HP: ${stats.hp}/${stats.maxHp})` };
     }
     if (item.effect === 'flee') {
       this._notifyChange(playerId, 'useItem', item);
-      return { success: true, log: `使用 ${item.name}，可以安全逃离！`, effect: 'flee' };
+      return { success: true, log: `Used ${item.name}; safe escape is ready`, effect: 'flee' };
     }
     if (item.effect === 'atkUp') {
       stats.atk += (item.value || 1);
       this._notifyChange(playerId, 'useItem', item);
-      return { success: true, log: `使用 ${item.name}，攻击力 +${item.value}` };
+      return { success: true, log: `Used ${item.name}, ATK +${item.value}` };
     }
     if (item.effect === 'defUp') {
       stats.def += (item.value || 1);
       this._notifyChange(playerId, 'useItem', item);
-      return { success: true, log: `使用 ${item.name}，防御力 +${item.value}` };
+      return { success: true, log: `Used ${item.name}, DEF +${item.value}` };
     }
 
     this._notifyChange(playerId, 'useItem', item);
-    return { success: true, log: `使用了 ${item.name}` };
+    return { success: true, log: `Used ${item.name}` };
   }
 
   /**
@@ -230,14 +230,14 @@ class StatsManager {
    */
   equip(playerId, itemKey) {
     const stats = this._stats.get(playerId);
-    if (!stats) return { success: false, log: '玩家不存在' };
+    if (!stats) return { success: false, log: 'Player not found' };
 
     const idx = stats.inventory.findIndex(i => i.key === itemKey);
-    if (idx === -1) return { success: false, log: '背包中没有该物品' };
+    if (idx === -1) return { success: false, log: 'Item is not in the inventory' };
 
     const item = stats.inventory[idx];
     const slot = item.type === 'weapon' ? 'weapon' : item.type === 'armor' ? 'armor' : item.type === 'accessory' ? 'accessory' : null;
-    if (!slot) return { success: false, log: '该物品不可装备' };
+    if (!slot) return { success: false, log: 'This item cannot be equipped' };
 
     // 卸下旧装备
     const old = stats.equipment[slot];
@@ -260,8 +260,8 @@ class StatsManager {
 
     this._notifyChange(playerId, 'equip', { slot, item });
     const log = old
-      ? `装备了 ${item.name}（替换 ${old.name}）`
-      : `装备了 ${item.name}`;
+      ? `Equipped ${item.name} (replaced ${old.name})`
+      : `Equipped ${item.name}`;
     return { success: true, log };
   }
 
@@ -283,7 +283,7 @@ class StatsManager {
       stats.hp = Math.min(stats.hp + 10, stats.maxHp);
       stats.atk += 2;
       stats.def += 1;
-      logs.push(`升级！等级 ${stats.level} (HP+5, ATK+2, DEF+1)`);
+      logs.push(`Level up! Level ${stats.level} (HP+5, ATK+2, DEF+1)`);
       expNeeded = stats.level * 20;
     }
     if (logs.length > 0) {
@@ -303,7 +303,7 @@ class StatsManager {
     stats.gold += amount;
     if (stats.gold < 0) stats.gold = 0;
     this._notifyChange(playerId, 'gold', { amount });
-    return { success: true, log: amount >= 0 ? `获得 ${amount} 金币 (共 ${stats.gold})` : `失去 ${-amount} 金币 (共 ${stats.gold})` };
+    return { success: true, log: amount >= 0 ? `Gained ${amount} coins (total ${stats.gold})` : `Lost ${-amount} coins (total ${stats.gold})` };
   }
 
   /**
@@ -341,7 +341,7 @@ class StatsManager {
       try {
         listener(playerId, changeType, data);
       } catch (err) {
-        console.error(`[StatsManager] 监听器异常:`, err.message);
+        console.error('[StatsManager] listener error:', err.message);
       }
     }
   }

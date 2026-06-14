@@ -36,18 +36,18 @@ router.get('/players', (_req, res) => {
 
 router.post('/profiles/create', (req, res) => {
   const { name, sprite, publicKey } = req.body || {};
-  if (!name) return res.status(400).json({ error: '缺少 name 字段' });
-  if (!sprite) return res.status(400).json({ error: '缺少 sprite 字段' });
-  if (!publicKey) return res.status(400).json({ error: '缺少 publicKey 字段' });
+  if (!name) return res.status(400).json({ error: 'Missing name field' });
+  if (!sprite) return res.status(400).json({ error: 'Missing sprite field' });
+  if (!publicKey) return res.status(400).json({ error: 'Missing publicKey field' });
   const profile = worldEngine.createProfile(name, sprite, publicKey);
   res.json(profile);
 });
 
 router.post('/login', (req, res) => {
   const { handle, timestamp, signature } = req.body || {};
-  if (!handle) return res.status(400).json({ error: '缺少 handle 字段' });
-  if (!timestamp) return res.status(400).json({ error: '缺少 timestamp 字段' });
-  if (!signature) return res.status(400).json({ error: '缺少 signature 字段' });
+  if (!handle) return res.status(400).json({ error: 'Missing handle field' });
+  if (!timestamp) return res.status(400).json({ error: 'Missing timestamp field' });
+  if (!signature) return res.status(400).json({ error: 'Missing signature field' });
   const result = worldEngine.loginProfile(handle, timestamp, signature);
   if (result.error) return res.status(result.code || 400).json({ error: result.error });
   res.json(result);
@@ -55,16 +55,16 @@ router.post('/login', (req, res) => {
 
 router.post('/session/heartbeat', (req, res) => {
   const token = (req.headers.authorization || '').replace(/^Bearer\s+/i, '') || null;
-  if (!token) return res.status(401).json({ error: '缺少登录凭证，请重新 login。' });
+  if (!token) return res.status(401).json({ error: 'Missing login token. Please log in again.' });
   const result = worldEngine.heartbeat(token);
-  if (!result) return res.status(401).json({ error: '登录已失效，请重新 login。' });
+  if (!result) return res.status(401).json({ error: 'Your login expired. Please log in again.' });
   res.json(result);
 });
 
 router.post('/logout', (req, res) => {
   const { handle, error } = RequestContext.fromRequest(req, { required: true, touchLease: false });
-  if (!handle || !handle.token) return res.status(401).json({ error: error || '缺少登录凭证，请重新 login。' });
-  if (!handle.logout()) return res.status(401).json({ error: '登录已失效，请重新 login。' });
+  if (!handle || !handle.token) return res.status(401).json({ error: error || 'Missing login token. Please log in again.' });
+  if (!handle.logout()) return res.status(401).json({ error: 'Your login expired. Please log in again.' });
   res.json({ ok: true });
 });
 
@@ -72,7 +72,7 @@ router.get('/look', requireSession, async (req, res) => {
   const release = await actionLock.acquire(req.requestHandle.playerId);
   try {
     const result = worldEngine.look(req.requestHandle.playerId);
-    if (!result) return res.status(404).json({ error: '玩家不存在' });
+    if (!result) return res.status(404).json({ error: 'Player not found' });
     res.json({ ...result, perceptions: req.drainPerceptions(), newMessages: req.drainNewMessages() });
   } finally { release(); }
 });
@@ -82,30 +82,30 @@ router.post('/walk', requireSession, async (req, res) => {
 
   // -- 参数类型与边界校验 --
   if (to !== undefined && (typeof to !== 'string' || to.length === 0 || to.length > 64)) {
-    return res.status(400).json({ error: 'to 参数必须为 1-64 字符的字符串' });
+    return res.status(400).json({ error: 'to must be a string between 1 and 64 characters' });
   }
   if (x !== undefined && !Number.isFinite(x)) {
-    return res.status(400).json({ error: 'x 必须为有限数值' });
+    return res.status(400).json({ error: 'x must be a finite number' });
   }
   if (y !== undefined && !Number.isFinite(y)) {
-    return res.status(400).json({ error: 'y 必须为有限数值' });
+    return res.status(400).json({ error: 'y must be a finite number' });
   }
   if (forward !== undefined && !Number.isFinite(forward)) {
-    return res.status(400).json({ error: 'forward 必须为有限数值' });
+    return res.status(400).json({ error: 'forward must be a finite number' });
   }
   if (right !== undefined && !Number.isFinite(right)) {
-    return res.status(400).json({ error: 'right 必须为有限数值' });
+    return res.status(400).json({ error: 'right must be a finite number' });
   }
 
   const hasAbsoluteCoord = typeof x === 'number' && typeof y === 'number';
   const hasRelative = typeof forward === 'number' || typeof right === 'number';
   if (!to && !hasAbsoluteCoord && !hasRelative) {
-    return res.status(400).json({ error: '需要指定目标: to(地名)、x+y(坐标)、或 forward/right(相对移动)' });
+    return res.status(400).json({ error: 'Choose a destination: to, x+y coordinates, or forward/right movement' });
   }
   const release = await actionLock.acquire(req.requestHandle.playerId);
   try {
     const result = await worldEngine.move(req.requestHandle.playerId, { to, x, y, forward, right });
-    if (!result) return res.status(404).json({ error: '玩家不存在' });
+    if (!result) return res.status(404).json({ error: 'Player not found' });
     if (result.error) return res.status(400).json({ error: result.error });
     res.json({ ...result, perceptions: req.drainPerceptions(), newMessages: req.drainNewMessages() });
   } finally { release(); }
@@ -113,11 +113,11 @@ router.post('/walk', requireSession, async (req, res) => {
 
 router.post('/chat', requireSession, async (req, res) => {
   const { text } = req.body || {};
-  if (!text) return res.status(400).json({ error: '缺少 text 字段' });
+  if (!text) return res.status(400).json({ error: 'Missing text field' });
   const release = await actionLock.acquire(req.requestHandle.playerId);
   try {
     const result = worldEngine.chat(req.requestHandle.playerId, text);
-    if (!result) return res.status(404).json({ error: '玩家不存在' });
+    if (!result) return res.status(404).json({ error: 'Player not found' });
     res.json({ ...result, perceptions: req.drainPerceptions(), newMessages: req.drainNewMessages() });
   } finally { release(); }
 });
@@ -127,7 +127,7 @@ router.post('/interact', requireSession, async (req, res) => {
   try {
     const { item } = req.body || {};
     const result = worldEngine.interact(req.requestHandle.playerId, item || null);
-    if (!result) return res.status(404).json({ error: '玩家不存在' });
+    if (!result) return res.status(404).json({ error: 'Player not found' });
     res.json({ ...result, perceptions: req.drainPerceptions(), newMessages: req.drainNewMessages() });
   } finally { release(); }
 });

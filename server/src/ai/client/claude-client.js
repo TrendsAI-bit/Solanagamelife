@@ -87,7 +87,7 @@ class ClaudeClient extends BaseAIClient {
 
     // Ensure first message is from user
     if (formatted.length > 0 && formatted[0].role !== 'user') {
-      formatted.unshift({ role: 'user', content: '(等待中...)' });
+      formatted.unshift({ role: 'user', content: '(waiting...)' });
     }
 
     return formatted;

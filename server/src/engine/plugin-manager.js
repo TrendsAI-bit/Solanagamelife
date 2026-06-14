@@ -60,7 +60,7 @@ class PluginManager {
     await plugin.onRegister(ctx);
     this._plugins.set(plugin.id, { plugin, ctx });
 
-    console.log(`🔌 插件已加载: ${plugin.id}${plugin.version !== '0.0.0' ? ` v${plugin.version}` : ''}`);
+    console.log(`[plugin] Loaded: ${plugin.id}${plugin.version !== '0.0.0' ? ` v${plugin.version}` : ''}`);
   }
 
   /**
@@ -112,7 +112,7 @@ class PluginManager {
     await entry.plugin.onUnregister();
     this._plugins.delete(pluginId);
 
-    console.log(`🔌 插件已卸载: ${pluginId}`);
+    console.log(`[plugin] Unloaded: ${pluginId}`);
   }
 
   // ── 查询接口 (供引擎消费) ──────────────────────────────────────────────
@@ -200,7 +200,7 @@ class PluginManager {
       try {
         handler(data);
       } catch (err) {
-        console.error(`🔌 插件事件处理异常 (${eventType}):`, err.message);
+        console.error(`[plugin] Event handler error (${eventType}):`, err.message);
       }
     }
   }
