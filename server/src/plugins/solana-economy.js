@@ -95,6 +95,7 @@ const inventories = new Map();
 const portfolio = new Map();
 const walletAgents = new Map();
 const agentTargets = new Map();
+const GATEKEEPER_IDS = ['npc_elder_chen', 'npc_samurai_lin', 'npc_princess_lily'];
 let treasury = {
   tvl: 42690,
   rewardsPerHour: 128,
@@ -388,14 +389,14 @@ class SolanaEconomyPlugin extends IPlugin {
     }, { requireSession: false });
 
     this.agentTimer = setInterval(async () => {
-      if (walletAgents.size === 0) return;
       const players = worldEngine.getAllPlayers();
-      for (const agentId of walletAgents.keys()) {
+      const activeAgents = new Set([...GATEKEEPER_IDS, ...walletAgents.keys()]);
+      for (const agentId of activeAgents) {
         const player = players[agentId];
         if (!player) continue;
         let target = agentTargets.get(agentId);
         if (!target || (Math.abs(player.x - target.x) <= 1 && Math.abs(player.y - target.y) <= 1)) {
-          if (target) {
+          if (target && walletAgents.has(agentId)) {
             worldEngine.interact(agentId, null);
           }
           target = chooseAgentTarget(agentId, worldEngine);
