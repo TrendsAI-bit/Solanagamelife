@@ -15,6 +15,7 @@ const BaseInteractionsPlugin = require('./plugins/base-interactions');
 const BaseNpcPlugin = require('./plugins/base-npc');
 const BaseStatsPlugin = require('./plugins/base-stats');
 const createAiNpcPlugin = require('./plugins/ai-npc-plugin');
+const SolanaEconomyPlugin = require('./plugins/solana-economy');
 
 const app = express();
 const server = http.createServer(app);
@@ -49,6 +50,7 @@ const aiNpcPlugin = createAiNpcPlugin();
   await pluginManager.loadPlugin(new BaseStatsPlugin());
   await pluginManager.loadPlugin(new BaseInteractionsPlugin());
   await pluginManager.loadPlugin(new BaseNpcPlugin());
+  await pluginManager.loadPlugin(new SolanaEconomyPlugin());
 
   // 加载 AI NPC 插件
   console.log('[ai-npc] 正在加载 AI NPC 插件...');
@@ -61,7 +63,6 @@ const aiNpcPlugin = createAiNpcPlugin();
 
   // 自动加载 workspace 包中的插件
   const workspacePlugins = [
-    '@alicization/rpg-advanced',
     '@alicization/dungeon',
   ];
   for (const pluginName of workspacePlugins) {
@@ -173,7 +174,7 @@ io.on('connection', (socket) => {
   socket.emit('characterList', worldEngine.getCharacterList());
 });
 
-server.listen(PORT, () => console.log(`🌍 Underworld 已启动: http://localhost:${PORT}`));
+server.listen(PORT, () => console.log(`🌍 Solana Game Life started: http://localhost:${PORT}`));
 
 // ── 初始化 NPC 常驻系统 ─────────────────────────────────────────────────────
 const npcManager = new NpcManager(worldEngine, pluginManager);

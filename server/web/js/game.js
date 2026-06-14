@@ -74,8 +74,10 @@
     // === AI 面板 ===
     let selectedPlayerId = null;
     let playerActivityData = {};
+    let demoModeStarted = false;
     const aiListEl = document.getElementById('ai-list');
     const aiCountEl = document.getElementById('ai-count');
+    const economyContentEl = document.getElementById('economy-content');
     const activityDetailEl = document.getElementById('activity-detail');
     const activityDetailNameEl = document.getElementById('activity-detail-name');
     const activityLogEl = document.getElementById('activity-log');
@@ -110,6 +112,15 @@
     const ITEM_NAMES = ['Noodle','Sushi','Fish','Onigiri','Meat','FortuneCookie','Honey','LifePot','MilkPot','WaterPot','Heart','Sword','Katana','Bow','GoldCoin','GoldKey','Billboard'];
     const itemImages = {};
     ITEM_NAMES.forEach(name => { const img = new Image(); img.src = `assets/items/${name}.png`; itemImages[name] = img; });
+
+    const solanaRosterImage = new Image();
+    solanaRosterImage.src = 'assets/solana/solana-character-roster.png';
+    const SOLANA_ROSTER_RECTS = [
+      { x: 50, y: 128, w: 400, h: 645 },
+      { x: 506, y: 124, w: 385, h: 654 },
+      { x: 908, y: 86, w: 357, h: 688 },
+      { x: 1299, y: 136, w: 391, h: 637 },
+    ];
 
     const sfx = {
       interact: new Audio('assets/sounds/interact.wav'),
@@ -182,10 +193,10 @@
           // Check if clicked on a clickable zone
           const clickedZone = getZoneAtMouse();
           if (clickedZone && isClickableZone(clickedZone.name)) {
-            if (isShrineZone(clickedZone.name)) {
-              showShrinePopup(clickedZone.name, e.clientX, e.clientY);
-            } else {
+            if (isResourceZone(clickedZone.name)) {
               showZonePopup(clickedZone.name, e.clientX, e.clientY);
+            } else {
+              showShrinePopup(clickedZone.name, e.clientX, e.clientY);
             }
           } else {
             closeZonePopup();
@@ -378,6 +389,39 @@
       return !player.lastActionAt || (Date.now() - player.lastActionAt) > IDLE_AFTER_MS;
     }
 
+    function drawSolanaRosterCharacter(targetCtx, index, x, y, w, h) {
+      if (!solanaRosterImage.complete || solanaRosterImage.naturalWidth === 0) return false;
+      const rect = SOLANA_ROSTER_RECTS[index % SOLANA_ROSTER_RECTS.length];
+      targetCtx.save();
+      targetCtx.imageSmoothingEnabled = false;
+      targetCtx.drawImage(solanaRosterImage, rect.x, rect.y, rect.w, rect.h, x, y, w, h);
+      targetCtx.restore();
+      return true;
+    }
+
+    function startVercelDemoMode() {
+      if (demoModeStarted) return;
+      demoModeStarted = true;
+      document.body.classList.add('cyberpunk-mode');
+      const now = Date.now();
+      const demoPlayers = {
+        demo_farmer: { id: 'demo_farmer', name: 'Yield Farmer', sprite: 'Boy', solanaSpriteIndex: 0, x: 14, y: 42, lastDirection: 'S', currentZoneName: 'Yield Farm', message: 'Compounding DUST rewards', interactionText: 'harvesting SOL seeds', interactionIcon: 'Honey', lastActionAt: now, lastHeartbeatAt: now },
+        demo_lp: { id: 'demo_lp', name: 'LP Vault Engineer', sprite: 'FighterRed', solanaSpriteIndex: 1, x: 22, y: 18, lastDirection: 'E', currentZoneName: 'LP Vault', message: '', interactionText: 'opening fee crates', interactionIcon: 'GoldCoin', lastActionAt: now, lastHeartbeatAt: now },
+        demo_validator: { id: 'demo_validator', name: 'Validator Monk', sprite: 'Monk', solanaSpriteIndex: 2, x: 38, y: 32, lastDirection: 'W', currentZoneName: 'Validator Shrine', message: 'Vote credits look clean', interactionText: '', interactionIcon: '', lastActionAt: now, lastHeartbeatAt: now },
+        demo_mm: { id: 'demo_mm', name: 'Market Maker', sprite: 'Princess', solanaSpriteIndex: 3, x: 46, y: 45, lastDirection: 'N', currentZoneName: 'AMM Market', message: 'Routing a SOL/USDC swap', interactionText: '', interactionIcon: '', lastActionAt: now, lastHeartbeatAt: now },
+      };
+      for (const [id, p] of Object.entries(demoPlayers)) {
+        clientPlayers[id] = { ...p, displayX: p.x * TILE_SIZE, displayY: p.y * TILE_SIZE, targetX: p.x * TILE_SIZE, targetY: p.y * TILE_SIZE, animFrame: 0 };
+        playerActivityData[id] = [
+          { time: now - 9000, type: 'join', text: 'Entered Solana Game Life demo mode' },
+          { time: now - 5000, type: 'defi', text: `${p.name} updated a simulated protocol position` },
+        ];
+      }
+      updateAiPanel();
+      updateStatsPanel();
+      addInteractionMessage({ time: now, name: 'Protocol', zone: 'Vercel Preview', action: 'running static demo mode' });
+    }
+
     // ==========================================
     // === 初始化 ===
     // ==========================================
@@ -414,7 +458,7 @@
         camera.y = camera.targetY = Math.max(0, mapPixelH - VIEWPORT_H / camera.zoom);
 
         const eventSource = new EventSource('/events');
-        eventSource.onopen = () => { document.getElementById('status-text').innerText = "Connected - Let your OpenClaw or ClaudeCode Join the World!"; };
+        eventSource.onopen = () => { document.getElementById('status-text').innerText = "Connected - agents can now farm, stake, swap, and compound."; };
         eventSource.onmessage = (event) => {
           const serverPlayers = JSON.parse(event.data);
           for (const id in serverPlayers) {
@@ -466,7 +510,10 @@
           playerActivityData[data.id] = data.activities || [];
           if (selectedPlayerId === data.id) renderActivityLog(data.id);
         });
-        eventSource.onerror = () => { document.getElementById('status-text').innerText = "Disconnected - Reconnecting..."; };
+        eventSource.onerror = () => {
+          document.getElementById('status-text').innerText = "Static demo mode - Vercel is serving the frontend preview.";
+          startVercelDemoMode();
+        };
 
         initParticles(); initNpcAnimals(); initAnimDecors();
         if (!isGameLoopRunning) { isGameLoopRunning = true; lastFrameTime = performance.now(); requestAnimationFrame(gameLoop); }
@@ -791,6 +838,28 @@
       }
     }
 
+    function drawCyberpunkOverlay() {
+      if (!demoModeStarted) return;
+      ctx.save();
+      ctx.globalCompositeOperation = 'multiply';
+      ctx.fillStyle = 'rgba(8, 7, 28, 0.28)';
+      ctx.fillRect(camera.x,camera.y,VIEWPORT_W/camera.zoom,VIEWPORT_H/camera.zoom);
+      ctx.globalCompositeOperation = 'screen';
+      ctx.strokeStyle = 'rgba(38,242,194,0.18)';
+      ctx.lineWidth = 1 / camera.zoom;
+      const step = TILE_SIZE * 3;
+      const startX = Math.floor(camera.x / step) * step;
+      const startY = Math.floor(camera.y / step) * step;
+      for (let x = startX; x < camera.x + VIEWPORT_W / camera.zoom; x += step) {
+        ctx.beginPath(); ctx.moveTo(x, camera.y); ctx.lineTo(x, camera.y + VIEWPORT_H / camera.zoom); ctx.stroke();
+      }
+      for (let y = startY; y < camera.y + VIEWPORT_H / camera.zoom; y += step) {
+        ctx.beginPath(); ctx.moveTo(camera.x, y); ctx.lineTo(camera.x + VIEWPORT_W / camera.zoom, y); ctx.stroke();
+      }
+      ctx.globalCompositeOperation = 'source-over';
+      ctx.restore();
+    }
+
     // ==========================================
     // === 绘制玩家悬浮信息卡：屏幕坐标层 ===
     // ==========================================
@@ -804,13 +873,15 @@
       ctx.strokeStyle='#74b9ff'; ctx.lineWidth=1.5; ctx.stroke();
       // 头像单独画在信息卡左上角，避免文字抖动时一起偏移。
       const si=(p.sprite&&characterImages[p.sprite])?characterImages[p.sprite]:images['player'];
-      if(si&&si.complete){const pw=si.width/4,ph=si.height/4;ctx.imageSmoothingEnabled=false;ctx.drawImage(si,0,0,pw,ph,cx+8,cy+8,32,32);ctx.imageSmoothingEnabled=true;}
+      if(typeof p.solanaSpriteIndex==='number'){
+        drawSolanaRosterCharacter(ctx,p.solanaSpriteIndex,cx+8,cy+2,34,44);
+      } else if(si&&si.complete){const pw=si.width/4,ph=si.height/4;ctx.imageSmoothingEnabled=false;ctx.drawImage(si,0,0,pw,ph,cx+8,cy+8,32,32);ctx.imageSmoothingEnabled=true;}
       // 名字保持高对比色，方便在深色卡片上快速识别。
       ctx.font='bold 13px "Pixelify Sans",sans-serif';
       ctx.fillStyle='#74b9ff'; ctx.textAlign='left'; ctx.textBaseline='top';
       ctx.fillText(p.name,cx+46,cy+8);
       // 区域名去掉括号附注，避免悬浮信息过长。
-      const zone=(p.currentZoneName||'小镇街道').split('(')[0].trim();
+        const zone=(p.currentZoneName||'protocol lane').split('(')[0].trim();
       ctx.font='11px "Pixelify Sans",sans-serif'; ctx.fillStyle='#9aa899';
       ctx.fillText('📍 '+zone,cx+46,cy+26);
       // 思考态与空闲态用颜色直接区分，减少阅读成本。
@@ -843,6 +914,7 @@
       });
 
       drawParticlesOfType('shimmer');
+      drawCyberpunkOverlay();
       drawAnimDecors('bottom');
       drawNpcAnimals();
       drawStaticLandmarks();
@@ -880,7 +952,14 @@
         const pw=si.width/4,ph=si.height/4;
         ctx.save();
         ctx.globalAlpha=actorAlpha;
-        ctx.drawImage(si,col*pw,row*ph,pw,ph,sx,sy-10,TILE_SIZE*1.2,TILE_SIZE*1.2);
+        if(typeof p.solanaSpriteIndex==='number'){
+          ctx.shadowColor = '#26f2c2';
+          ctx.shadowBlur = 5 / camera.zoom;
+          drawSolanaRosterCharacter(ctx,p.solanaSpriteIndex,sx-2,sy-34,TILE_SIZE*1.18,TILE_SIZE*2.05);
+          ctx.shadowBlur = 0;
+        } else {
+          ctx.drawImage(si,col*pw,row*ph,pw,ph,sx,sy-10,TILE_SIZE*1.2,TILE_SIZE*1.2);
+        }
         const cx2=sx+TILE_SIZE/2;
         const floatY=Math.sin(Date.now()/300+p.x)*2;
         const nameY=sy-15;
@@ -894,7 +973,9 @@
           if(selectedPlayerId&&p.id===selectedPlayerId){
             ctx.strokeStyle=`rgba(116,185,255,${0.5+0.3*Math.sin(Date.now()/300)})`;
             ctx.lineWidth=2/camera.zoom;
-            ctx.beginPath(); ctx.roundRect(sx-3,sy-13,TILE_SIZE*1.2+6,TILE_SIZE*1.2+6,6); ctx.stroke();
+            const selY = typeof p.solanaSpriteIndex==='number' ? sy-35 : sy-13;
+            const selH = typeof p.solanaSpriteIndex==='number' ? TILE_SIZE*2.1 : TILE_SIZE*1.2+6;
+            ctx.beginPath(); ctx.roundRect(sx-4,selY,TILE_SIZE*1.25+8,selH,6); ctx.stroke();
             const ay=sy-22+Math.sin(Date.now()/400)*3;
             ctx.fillStyle='#74b9ff'; ctx.beginPath(); ctx.moveTo(cx2-4,ay); ctx.lineTo(cx2+4,ay); ctx.lineTo(cx2,ay+5); ctx.closePath(); ctx.fill();
           }
@@ -990,8 +1071,12 @@
       for(const id in clientPlayers){
         const p=clientPlayers[id]; if(p.name==='Observer') continue;
         const spx=(p.displayX-camera.x)*camera.zoom, spy=(p.displayY-camera.y)*camera.zoom;
-        const pw2=TILE_SIZE*1.2*camera.zoom, ph2=TILE_SIZE*1.2*camera.zoom;
-        if(mouseScreenX>=spx&&mouseScreenX<=spx+pw2&&mouseScreenY>=spy-10*camera.zoom&&mouseScreenY<=spy+ph2){ hoveredPlayerId=id; break; }
+        const isSolana = typeof p.solanaSpriteIndex==='number';
+        const hitX = spx + (isSolana ? -2 : 0) * camera.zoom;
+        const hitY = spy + (isSolana ? -34 : -10) * camera.zoom;
+        const hitW = (isSolana ? TILE_SIZE*1.18 : TILE_SIZE*1.2) * camera.zoom;
+        const hitH = (isSolana ? TILE_SIZE*2.05 : TILE_SIZE*1.2) * camera.zoom;
+        if(mouseScreenX>=hitX&&mouseScreenX<=hitX+hitW&&mouseScreenY>=hitY&&mouseScreenY<=hitY+hitH){ hoveredPlayerId=id; break; }
       }
 
       // 悬浮卡最后绘制，确保压在所有世界元素之上。
@@ -1112,17 +1197,20 @@
     // ==========================================
     function updateAiPanel(){
       const players=Object.values(clientPlayers).filter(p=>p.name!=='Observer');
-      aiCountEl.textContent=`${players.length} online`;
+      aiCountEl.textContent=`${players.length} active`;
       aiListEl.innerHTML='';
       players.forEach(p=>{
         const wrap=document.createElement('div');
         wrap.className='ai-avatar-wrap'+(selectedPlayerId===p.id?' selected':'');
-        wrap.title=`${p.name}\n${p.currentZoneName||'小镇街道'}`;
+        wrap.title=`${p.name}\n${p.currentZoneName||'protocol lane'}`;
         // Canvas: 32x32 internal, CSS sizes it responsively
         const ac=document.createElement('canvas'); ac.width=32; ac.height=32; ac.className='ai-avatar-icon';
         const si=(p.sprite&&characterImages[p.sprite])?characterImages[p.sprite]:images['player'];
-        if(si&&si.complete){
-          const actx=ac.getContext('2d'); actx.imageSmoothingEnabled=false;
+        const actx=ac.getContext('2d');
+        if(typeof p.solanaSpriteIndex==='number'){
+          drawSolanaRosterCharacter(actx,p.solanaSpriteIndex,5,0,22,32);
+        } else if(si&&si.complete){
+          actx.imageSmoothingEnabled=false;
           // Sample the front-facing idle frame (row 0, col 0)
           const fw=si.width/4, fh=si.height/4;
           actx.drawImage(si, 0, 0, fw, fh, 0, 0, 32, 32);
@@ -1162,21 +1250,64 @@
       for(const id in playerActivityData){
         const p=clientPlayers[id]; if(!p||p.name==='Observer') continue;
         const acts=playerActivityData[id]||[];
-        stats[p.name]={moves:acts.filter(a=>a.type==='move').length,says:acts.filter(a=>a.type==='say').length,interacts:acts.filter(a=>a.type==='interact').length};
+        stats[p.name]={
+          moves:acts.filter(a=>a.type==='move').length,
+          says:acts.filter(a=>a.type==='chat'||a.type==='say').length,
+          interacts:acts.filter(a=>a.type==='interact').length,
+          defi:acts.filter(a=>a.type==='defi').length,
+        };
         if(acts.length>0) hasData=true;
       }
       const names=Object.keys(stats);
-      if(!hasData||names.length===0){el.innerHTML='<span id="stats-empty">Waiting for data...</span>';return;}
+      if(!hasData||names.length===0){el.innerHTML='<span id="stats-empty">Waiting for activity...</span>';return;}
       const topMove=names.reduce((a,b)=>stats[a].moves>=stats[b].moves?a:b);
       const topSay=names.reduce((a,b)=>stats[a].says>=stats[b].says?a:b);
       const topInteract=names.reduce((a,b)=>stats[a].interacts>=stats[b].interacts?a:b);
+      const topDefi=names.reduce((a,b)=>stats[a].defi>=stats[b].defi?a:b);
       let html='';
-      if(stats[topMove].moves>0) html+=`<div class="stat-row">🚶 最活跃: <span class="stat-name">${escapeHtml(topMove)}</span> (${stats[topMove].moves} 步)</div>`;
-      if(stats[topSay].says>0) html+=`<div class="stat-row">💬 最健谈: <span class="stat-name">${escapeHtml(topSay)}</span> (${stats[topSay].says} 句)</div>`;
-      if(stats[topInteract].interacts>0) html+=`<div class="stat-row">🎭 最互动: <span class="stat-name">${escapeHtml(topInteract)}</span> (${stats[topInteract].interacts} 次)</div>`;
-      el.innerHTML=html||'<span id="stats-empty">Waiting for data...</span>';
+      if(stats[topMove].moves>0) html+=`<div class="stat-row">Most active: <span class="stat-name">${escapeHtml(topMove)}</span> (${stats[topMove].moves} moves)</div>`;
+      if(stats[topSay].says>0) html+=`<div class="stat-row">Most social: <span class="stat-name">${escapeHtml(topSay)}</span> (${stats[topSay].says} chats)</div>`;
+      if(stats[topInteract].interacts>0) html+=`<div class="stat-row">Most hands-on: <span class="stat-name">${escapeHtml(topInteract)}</span> (${stats[topInteract].interacts} actions)</div>`;
+      if(stats[topDefi].defi>0) html+=`<div class="stat-row">Yield lead: <span class="stat-name">${escapeHtml(topDefi)}</span> (${stats[topDefi].defi} DeFi ticks)</div>`;
+      el.innerHTML=html||'<span id="stats-empty">Waiting for activity...</span>';
     }
     setInterval(updateStatsPanel, 3000);
+
+    function renderFallbackEconomy() {
+      if (!economyContentEl) return;
+      economyContentEl.innerHTML = ''
+        + '<div class="stat-row">TVL: <span class="stat-name">$42,690</span></div>'
+        + '<div class="stat-row">Emissions: <span class="stat-name">128 DUST/hr</span></div>'
+        + '<div class="stat-row">LP Fees: <span class="stat-name">314 DUST</span></div>'
+        + '<div class="stat-row">Risk: <span class="stat-name">18%</span></div>'
+        + '<div class="stat-row">Static Vercel demo economy</div>';
+    }
+
+    function fetchEconomy() {
+      fetch('/api/solana/economy')
+        .then(r => r.ok ? r.json() : null)
+        .then(data => {
+          if (!data || !economyContentEl) {
+            if (demoModeStarted) renderFallbackEconomy();
+            return;
+          }
+          const t = data.treasury || {};
+          const leader = (data.players || []).sort((a,b) => (b.claimable || 0) - (a.claimable || 0))[0];
+          let html = '';
+          html += `<div class="stat-row">TVL: <span class="stat-name">$${Number(t.tvl || 0).toLocaleString()}</span></div>`;
+          html += `<div class="stat-row">Emissions: <span class="stat-name">${Number(t.rewardsPerHour || 0).toLocaleString()} DUST/hr</span></div>`;
+          html += `<div class="stat-row">LP Fees: <span class="stat-name">${Number(t.lpFees || 0).toLocaleString()} DUST</span></div>`;
+          html += `<div class="stat-row">Risk: <span class="stat-name">${Number(t.risk || 0)}%</span></div>`;
+          if (leader) html += `<div class="stat-row">Top wallet: <span class="stat-name">${escapeHtml(leader.name)}</span> (${leader.claimable} DUST)</div>`;
+          html += `<div class="stat-row">${escapeHtml(t.lastEvent || 'Economy initialized')}</div>`;
+          economyContentEl.innerHTML = html;
+        })
+        .catch(() => {
+          renderFallbackEconomy();
+        });
+    }
+    fetchEconomy();
+    setInterval(fetchEconomy, 5000);
 
     // ==========================================
     // === Zone 资源交互系统 ===
@@ -1185,11 +1316,14 @@
     let hoveredZoneName = null; // 当前鼠标悬停的 zone 名称
     let rpgPluginAvailable = null; // null=未知, true=可用, false=不可用
 
-    // 判断 zone 名称是否属于有资源的类型
+    // 判断 zone 名称是否属于有协议库存的类型
     const RESOURCE_ZONE_PATTERNS = [
-      /面馆|noodle|restaurant/i,
+      /farm|农场|grass|草丛|tree|树/i,
       /集市|market/i,
+      /shrine|神社/i,
+      /warehouse|仓库/i,
       /药水|potion|magic|魔药/i,
+      /practice|练习/i,
     ];
     function isResourceZone(name) {
       return RESOURCE_ZONE_PATTERNS.some(p => p.test(name || ''));
@@ -1200,7 +1334,7 @@
       return /shrine|神社/i.test(name || '');
     }
 
-    // 判断是否可以弹出面板的区域（资源区 + 神社）
+    // 判断是否可以弹出面板的区域（协议库存区）
     function isClickableZone(name) {
       return isResourceZone(name) || isShrineZone(name);
     }
@@ -1234,9 +1368,12 @@
       }
       // 模糊匹配：用 RESOURCE_ZONE_PATTERNS 推断类别
       const CATEGORY_MAP = [
-        [/面馆|noodle|restaurant/i, 'restaurant'],
+        [/farm|农场|grass|草丛|tree|树/i, 'farm'],
         [/集市|market/i, 'marketplace'],
+        [/shrine|神社/i, 'shrine'],
+        [/warehouse|仓库/i, 'warehouse'],
         [/药水|potion|magic|魔药/i, 'potion'],
+        [/practice|练习/i, 'practice'],
       ];
       let targetCat = null;
       for (const [pat, cat] of CATEGORY_MAP) {
@@ -1281,15 +1418,15 @@
 
       if (rpgPluginAvailable === false) {
         contentEl.innerHTML = '<div class="zone-inv-empty">'
-          + '此功能需要 <b>RPG Advanced</b> 插件<br>'
-          + '<a href="https://github.com/ceresOPA/Alicization-Town" target="_blank">GitHub</a>'
+          + 'Economy plugin is offline<br>'
+          + '<span>Restart the server and try again.</span>'
           + '</div>';
       } else if (!resInfo) {
         const hasAnyData = Object.keys(zoneResourceData).length > 0;
         if (hasAnyData) {
-          contentEl.innerHTML = '<div class="zone-inv-empty">该区域暂无可用资源</div>';
+          contentEl.innerHTML = '<div class="zone-inv-empty">No protocol inventory here</div>';
         } else {
-          contentEl.innerHTML = '<div class="zone-inv-empty">资源数据加载中…</div>';
+          contentEl.innerHTML = '<div class="zone-inv-empty">Syncing protocol inventory...</div>';
           fetchZoneResources();
           setTimeout(() => {
             const retryInfo = findResourceByZoneName(zoneName);
@@ -1298,8 +1435,8 @@
             } else if (contentEl) {
               const stillEmpty = Object.keys(zoneResourceData).length === 0;
               contentEl.innerHTML = '<div class="zone-inv-empty">' + (stillEmpty
-                ? '资源系统尚未就绪，请稍后再试'
-                : '该区域暂无可用资源') + '</div>';
+                ? 'Protocol inventory is still booting'
+                : 'No protocol inventory here') + '</div>';
             }
           }, 2500);
         }
@@ -1307,21 +1444,21 @@
         // Inventory grid rendering
         const resEntries = Object.entries(resInfo.resources);
         if (resEntries.length === 0) {
-          contentEl.innerHTML = '<div class="zone-inv-empty">该区域资源为空</div>';
+          contentEl.innerHTML = '<div class="zone-inv-empty">This protocol vault is empty</div>';
         } else {
           let html = '<div class="zone-inv-grid">';
           for (const [key, res] of resEntries) {
             const iconName = res.icon || 'GoldCoin';
             const countClass = res.current <= 0 ? 'zero' : '';
-            html += `<div class="zone-inv-slot" data-zone-id="${resInfo.zoneId}" data-res-key="${key}" title="点击补充 ${res.label}">`;
+            html += `<div class="zone-inv-slot" data-zone-id="${resInfo.zoneId}" data-res-key="${key}" title="Refill ${res.label}">`;
             html += `  <img class="zone-inv-icon" src="assets/items/${iconName}.png" alt="${res.label}">`;
             html += `  <span class="zone-inv-label">${res.label}</span>`;
             html += `  <span class="zone-inv-count ${countClass}">&times;${res.current}</span>`;
-            html += `  <span class="zone-inv-plus">点击+1</span>`;
+            html += `  <span class="zone-inv-plus">refill +1</span>`;
             html += `</div>`;
           }
           html += '</div>';
-          html += '<div class="zone-popup-footer">点击物品补充资源</div>';
+          html += '<div class="zone-popup-footer">Click an item to refill protocol inventory</div>';
           contentEl.innerHTML = html;
 
           // Bind click events on slots
@@ -1389,15 +1526,15 @@
             if (zoneResourceData[zoneId]?.resources?.[resourceType]) {
               zoneResourceData[zoneId].resources[resourceType].current = data.current;
             }
-            if (msgEl) msgEl.textContent = data.message || '补充成功！';
+            if (msgEl) msgEl.textContent = data.message || 'Refilled';
             setTimeout(() => { if (msgEl) msgEl.textContent = ''; }, 2000);
           } else {
-            if (msgEl) msgEl.textContent = data.error || '补充失败';
+            if (msgEl) msgEl.textContent = data.error || 'Refill failed';
           }
         })
         .catch((err) => {
           console.error('[rpg] supply error:', err);
-          if (msgEl) msgEl.textContent = '请求失败，请确认 RPG 插件已加载';
+          if (msgEl) msgEl.textContent = 'Request failed; check economy plugin';
         })
         .finally(() => {
           slotEl.dataset.busy = '0';
@@ -1437,8 +1574,8 @@
           if (!r.ok) {
             // 插件未加载时 404
             contentEl.innerHTML = '<div class="zone-inv-empty">'
-              + '此功能需要 <b>RPG Advanced</b> 插件<br>'
-              + '<a href="https://github.com/ceresOPA/Alicization-Town" target="_blank">GitHub</a>'
+              + 'This board is disabled in Solana Game Life<br>'
+              + '<span>Use protocol zones for economy actions.</span>'
               + '</div>';
             return null;
           }
@@ -1447,8 +1584,8 @@
         .then(data => { if (data) renderShrineContent(contentEl, msgEl, data.stories || []); })
         .catch(() => {
           contentEl.innerHTML = '<div class="zone-inv-empty">'
-            + '此功能需要 <b>RPG Advanced</b> 插件<br>'
-            + '<a href="https://github.com/ceresOPA/Alicization-Town" target="_blank">GitHub</a>'
+            + 'This board is disabled in Solana Game Life<br>'
+            + '<span>Use protocol zones for economy actions.</span>'
             + '</div>';
         });
     }

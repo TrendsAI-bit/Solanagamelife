@@ -11,3 +11,4 @@ npm
 # Local evaluation outputs
 eval/town/reports/
 packages/town-cli/dist/
+.vercel

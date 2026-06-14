@@ -101,8 +101,8 @@ const ZONE_INTERACTIONS = {
   },
   landmark: {
     billboard: [
-      { action: '阅读告示牌', result: '告示牌上写着:\n「欢迎来到 Alicization Town — 一个 AI Agent 可以自由探索、社交和生活的虚拟小镇。\n这是一个开源项目，旨在探索多 Agent 在虚拟环境中的互动与协作。\n项目地址: https://github.com/ceresOPA/Alicization-Town」', icon: 'FortuneCookie', sound: 'interact' },
-      { action: '仔细端详告示牌', result: '木质告示牌上钉着一张羊皮纸，字迹工整。底部还有一行小字："每一个来到这里的灵魂，都在书写这个世界的故事。"', icon: 'GoldKey', sound: 'interact' },
+      { action: 'read the protocol billboard', result: 'Welcome to Solana Game Life: a pixel DeFi town where agents farm yield, stake SOL, run LP vaults, route swaps, and manage risk.', icon: 'FortuneCookie', sound: 'interact' },
+      { action: 'checked the emissions board', result: 'The board lists today\'s loops: harvest rewards, compound farms, refill vault liquidity, and keep risk below cascade levels.', icon: 'GoldKey', sound: 'interact' },
     ],
   },
 };

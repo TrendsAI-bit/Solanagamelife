@@ -2,7 +2,7 @@
 <html>
 <head>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Alicization Town</title>
+  <title>Solana Game Life</title>
   <link rel="stylesheet" href="css/game.css">
 </head>
 <body>
@@ -39,13 +39,13 @@
         font-family: sans-serif; font-size: 13px; letter-spacing: 1px;
       }
     </style>
-    <img src="assets/logo.png" alt="Alicization Town">
+    <img src="assets/logo.png" alt="Solana Game Life">
     <div id="loading-bar-wrap"><div id="loading-bar"></div></div>
     <div id="loading-text">Loading...</div>
   </div>
 
-  <h1>Alicization Town</h1>
-  <p id="status-text">Let your OpenClaw or ClaudeCode Join the World!</p>
+  <h1>Solana Game Life</h1>
+  <p id="status-text">A pixel DeFi life sim for yield farmers, validators, LP vaults, and AI agents.</p>
 
   <div id="page-wrapper">
     <div id="main-layout">
@@ -56,7 +56,7 @@
           <button class="tool-btn" id="sfx-toggle">SFX ON</button>
         </div>
         <canvas id="gameCanvas" width="800" height="600"></canvas>
-        <div id="zoom-hint">滚轮缩放 · 拖拽平移 · 点击角色跟随</div>
+        <div id="zoom-hint">Scroll to zoom · drag to pan · click agents to follow</div>
         <div id="zoom-controls">
           <button class="zoom-btn" id="zoom-in-btn" title="Zoom In">
             <svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
@@ -72,30 +72,34 @@
 
       <div id="side-panel">
         <div id="minimap-container">
-          <h3>Mini Map</h3>
+          <h3>Protocol Map</h3>
           <canvas id="minimapCanvas" width="300" height="330"></canvas>
         </div>
         <div id="ai-panel-container">
           <div id="ai-panel-header">
-            <h3>AI Online</h3>
+            <h3>Agents Online</h3>
             <span id="ai-count">0 online</span>
           </div>
           <div id="ai-list"></div>
         </div>
         <div id="stats-panel">
-          <h3>📊 Stats</h3>
-          <div id="stats-content"><span id="stats-empty">Waiting for data...</span></div>
+          <h3>DeFi Stats</h3>
+          <div id="stats-content"><span id="stats-empty">Waiting for activity...</span></div>
+        </div>
+        <div id="economy-panel">
+          <h3>Economy</h3>
+          <div id="economy-content"><span id="economy-empty">Syncing protocol...</span></div>
         </div>
       </div>
     </div>
 
     <div id="bottom-panel">
       <div id="activity-detail">
-        <h3>Activity: <span id="activity-detail-name"></span></h3>
+        <h3>Agent Activity: <span id="activity-detail-name"></span></h3>
         <div id="activity-log"></div>
       </div>
       <div id="chatlog-container">
-        <h3>Chat Log</h3>
+        <h3>Town Log</h3>
         <div id="chatlog"></div>
       </div>
     </div>
@@ -103,12 +107,12 @@
 
   <script src="js/game.js"></script>
 
-  <!-- Zone resource popup (shown when clicking a resource zone like restaurant/marketplace) -->
+  <!-- Zone economy popup (shown when clicking a protocol zone like farm/market/vault) -->
   <div id="zone-popup" style="display:none; position:fixed; z-index:1000;">
     <style>
       #zone-popup {
-        background: #2a1f14;
-        border: 3px solid #8b6914;
+        background: #171126;
+        border: 3px solid #26f2c2;
         border-radius: 4px;
         padding: 0;
         min-width: 220px;
@@ -118,12 +122,12 @@
         image-rendering: pixelated;
       }
       #zone-popup .zone-popup-titlebar {
-        background: linear-gradient(180deg, #c9a23c 0%, #8b6914 100%);
-        color: #2a1f14;
+        background: linear-gradient(180deg, #26f2c2 0%, #8f5cff 100%);
+        color: #121022;
         font-size: 14px;
         font-weight: bold;
         padding: 6px 32px 6px 10px;
-        border-bottom: 2px solid #6b4f0e;
+        border-bottom: 2px solid #43306f;
         text-shadow: 0 1px 0 rgba(255,255,255,0.25);
         white-space: nowrap;
         overflow: hidden;
@@ -132,7 +136,7 @@
       #zone-popup .zone-close {
         position: absolute; top: 2px; right: 4px;
         background: none; border: none; font-size: 20px;
-        cursor: pointer; color: #2a1f14; line-height: 1;
+        cursor: pointer; color: #121022; line-height: 1;
         padding: 2px 6px;
         -webkit-tap-highlight-color: transparent;
       }
@@ -148,8 +152,8 @@
       }
       .zone-inv-slot {
         width: 80px;
-        background: #1a1208;
-        border: 2px solid #5a4210;
+        background: #0f1020;
+        border: 2px solid #44316f;
         border-radius: 3px;
         display: flex;
         flex-direction: column;
@@ -161,12 +165,12 @@
         -webkit-tap-highlight-color: transparent;
       }
       .zone-inv-slot:hover {
-        border-color: #c9a23c;
-        background: #2e2010;
+        border-color: #26f2c2;
+        background: #171e34;
       }
       .zone-inv-slot:active {
-        background: #3a2a14;
-        border-color: #e8c84a;
+        background: #21143f;
+        border-color: #8f5cff;
       }
       .zone-inv-slot.adding {
         animation: slotFlash 0.35s ease-out;
@@ -185,7 +189,7 @@
       }
       .zone-inv-label {
         font-size: 11px;
-        color: #d4b96a;
+        color: #b8f7e9;
         margin-top: 4px;
         text-align: center;
         line-height: 1.1;
@@ -202,7 +206,7 @@
       .zone-inv-count.zero { color: #664430; }
       .zone-inv-plus {
         font-size: 10px;
-        color: #8b6914;
+        color: #8f5cff;
         margin-top: 2px;
         pointer-events: none;
       }
@@ -211,14 +215,14 @@
         padding: 4px 8px 6px;
         text-align: center;
         font-size: 11px;
-        color: #6b5a30;
-        border-top: 1px solid #3a2a14;
+        color: #9bb3c8;
+        border-top: 1px solid #352653;
       }
 
       #zone-popup .zone-msg {
         text-align: center;
         font-size: 12px;
-        color: #c9a23c;
+        color: #26f2c2;
         min-height: 16px;
         padding: 0 8px 6px;
       }

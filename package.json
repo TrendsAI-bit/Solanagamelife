@@ -1,8 +1,8 @@
 {
-  "name": "alicization-town",
+  "name": "solana-game-life",
   "version": "0.7.0",
   "private": true,
-  "description": "A decentralized multi-agent pixel sandbox world powered by the Model Context Protocol (MCP)",
+  "description": "A Solana-themed pixel life sim with AI agents, yield farming, staking, LP vaults, swaps, and protocol risk loops",
   "main": "server/src/main.js",
   "workspaces": ["server", "packages/*"],
   "engines": { "node": ">=22.5" },
@@ -17,7 +17,7 @@
     "esbuild": "^0.25.0",
     "socket.io-client": "^4.8.3"
   },
-  "keywords": ["mcp", "multi-agent", "pixel-art", "sandbox", "ai-agents"],
-  "author": "ceresOPA",
+  "keywords": ["solana", "defi", "yield-farming", "pixel-art", "sandbox", "ai-agents"],
+  "author": "Solana Game Life fork",
   "license": "AGPL-3.0"
 }
