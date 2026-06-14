@@ -81,6 +81,13 @@
     const activityDetailEl = document.getElementById('activity-detail');
     const activityDetailNameEl = document.getElementById('activity-detail-name');
     const activityLogEl = document.getElementById('activity-log');
+    const walletInputEl = document.getElementById('wallet-input');
+    const petSelectEl = document.getElementById('pet-select');
+    const spawnAgentBtn = document.getElementById('spawn-agent-btn');
+    const walletAgentNameEl = document.getElementById('wallet-agent-name');
+    const walletSglYieldEl = document.getElementById('wallet-sgl-yield');
+    const walletAgentStatusEl = document.getElementById('wallet-agent-status');
+    let localWalletAgentId = localStorage.getItem('sgl-agent-id') || '';
 
     // === 背景音乐 ===
     const bgm = new Audio('assets/musics/36-Village.ogg');
@@ -407,6 +414,12 @@
         { name: 'Market Maker', sprite: 'Princess', zone: 'AMM Market' },
       ];
       if (!player || player.name === 'Observer') return player;
+      if (String(id || '').startsWith('wallet_agent_')) {
+        const hash = String(id || player.id || player.name || '').split('').reduce((sum, ch) => sum + ch.charCodeAt(0), 0);
+        player.solanaSpriteIndex = typeof player.solanaSpriteIndex === 'number' ? player.solanaSpriteIndex : hash % profiles.length;
+        player.protocolZoneName = player.currentZoneName || 'SGL Yield Route';
+        return player;
+      }
       const knownOrder = ['npc_elder_chen', 'npc_samurai_lin', 'npc_princess_lily', 'demo_farmer', 'demo_lp', 'demo_validator', 'demo_mm'];
       const orderedIndex = knownOrder.indexOf(id);
       const hash = String(id || player.id || player.name || '').split('').reduce((sum, ch) => sum + ch.charCodeAt(0), 0);
@@ -1305,6 +1318,70 @@
         + '<div class="stat-row">Risk: <span class="stat-name">18%</span></div>'
         + '<div class="stat-row">Static Vercel demo economy</div>';
     }
+
+    function updateWalletYieldCard(agent, portfolio) {
+      if (!walletAgentNameEl || !walletSglYieldEl || !walletAgentStatusEl) return;
+      if (!agent && !portfolio) {
+        walletAgentNameEl.textContent = 'No wallet agent yet';
+        walletSglYieldEl.textContent = '0 SGL';
+        walletAgentStatusEl.textContent = 'Generate an avatar and send it to work.';
+        return;
+      }
+      const p = portfolio || agent.portfolio || {};
+      walletAgentNameEl.textContent = agent?.name || p.name || 'SGL Agent';
+      walletSglYieldEl.textContent = `${Number(p.sglYield || p.claimable || agent?.sglYield || 0).toLocaleString()} SGL`;
+      walletAgentStatusEl.textContent = `${Number(p.stakedSol || 0).toFixed(2)} SOL staked · ${Number(p.lpShares || 0).toFixed(2)} LP shares · risk ${Number(p.riskScore || 0)}%`;
+    }
+
+    function refreshWalletYield() {
+      if (!localWalletAgentId) return;
+      fetch(`/api/solana/agent/${encodeURIComponent(localWalletAgentId)}/yield`)
+        .then(r => r.ok ? r.json() : null)
+        .then(data => {
+          if (data?.portfolio) updateWalletYieldCard(null, data.portfolio);
+        })
+        .catch(() => {});
+    }
+
+    function spawnWalletAgent() {
+      if (!walletInputEl || !spawnAgentBtn) return;
+      const wallet = walletInputEl.value.trim();
+      if (!wallet) {
+        walletAgentStatusEl.textContent = 'Add a wallet address or handle first.';
+        walletInputEl.focus();
+        return;
+      }
+      spawnAgentBtn.disabled = true;
+      spawnAgentBtn.textContent = 'Launching...';
+      fetch('/api/solana/agent/spawn', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ wallet, pet: petSelectEl?.value || 'generated' }),
+      })
+        .then(r => r.json())
+        .then(data => {
+          if (!data?.success) throw new Error(data?.error || 'Could not launch agent');
+          localWalletAgentId = data.agent.id;
+          localStorage.setItem('sgl-agent-id', localWalletAgentId);
+          localStorage.setItem('sgl-wallet', wallet);
+          localStorage.setItem('sgl-pet', data.agent.pet);
+          updateWalletYieldCard(data.agent, data.agent.portfolio);
+          walletAgentStatusEl.textContent = `${data.agent.name} is routing through protocol zones.`;
+        })
+        .catch(err => {
+          walletAgentStatusEl.textContent = err.message || 'Launch failed.';
+        })
+        .finally(() => {
+          spawnAgentBtn.disabled = false;
+          spawnAgentBtn.textContent = 'Start Yield Run';
+        });
+    }
+
+    if (walletInputEl) walletInputEl.value = localStorage.getItem('sgl-wallet') || '';
+    if (petSelectEl) petSelectEl.value = localStorage.getItem('sgl-pet') || 'generated';
+    if (spawnAgentBtn) spawnAgentBtn.addEventListener('click', spawnWalletAgent);
+    refreshWalletYield();
+    setInterval(refreshWalletYield, 5000);
 
     function fetchEconomy() {
       fetch('/api/solana/economy')

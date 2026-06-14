@@ -170,6 +170,82 @@ body.cyberpunk-mode #game-container::after {
   min-width: 0;
 }
 
+#agent-launch-panel {
+  background: rgba(17,19,31,0.96);
+  border: 3px solid #f3ba2f;
+  border-radius: 8px;
+  padding: 8px;
+  flex-shrink: 0;
+  box-shadow: 0 0 18px rgba(243,186,47,0.16);
+}
+#agent-launch-panel h3 {
+  color: #f3ba2f;
+  font-size: 14px;
+  margin-bottom: 6px;
+}
+.agent-launch-row {
+  display: grid;
+  grid-template-columns: 1fr 88px;
+  gap: 6px;
+}
+#wallet-input,
+#pet-select {
+  min-width: 0;
+  height: 30px;
+  border: 2px solid rgba(38,242,194,0.65);
+  border-radius: 6px;
+  background: rgba(4,6,14,0.9);
+  color: #d9f8ef;
+  font-family: 'Pixelify Sans', sans-serif;
+  font-size: 12px;
+  padding: 0 7px;
+}
+#pet-select { padding: 0 4px; }
+#spawn-agent-btn {
+  width: 100%;
+  height: 32px;
+  margin-top: 6px;
+  border: 2px solid #26f2c2;
+  border-radius: 6px;
+  background: linear-gradient(180deg, rgba(38,242,194,0.9), rgba(143,92,255,0.82));
+  color: #080b12;
+  cursor: pointer;
+  font-family: 'Pixelify Sans', sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+}
+#spawn-agent-btn:disabled {
+  cursor: wait;
+  filter: grayscale(0.5) brightness(0.75);
+}
+#wallet-yield-card {
+  margin-top: 7px;
+  border-top: 1px solid rgba(255,255,255,0.1);
+  padding-top: 6px;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 3px 8px;
+  align-items: center;
+}
+#wallet-agent-name {
+  color: #d9f8ef;
+  font-size: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+#wallet-sgl-yield {
+  color: #26f2c2;
+  font-size: 13px;
+  text-shadow: 0 0 8px rgba(38,242,194,0.45);
+}
+#wallet-agent-status {
+  grid-column: 1 / -1;
+  color: #9bb3c8;
+  font-size: 10px;
+  line-height: 1.25;
+}
+
 /* --- Minimap --- */
 #minimap-container {
   background: rgba(17,19,31,0.94); border: 3px solid #26f2c2; border-radius: 8px;

@@ -1,4 +1,5 @@
 const { IPlugin } = require('@alicization/core-interfaces');
+const worldEngine = require('../engine/world-engine');
 
 const ZONE_DEFS = {
   farm: {
@@ -92,6 +93,8 @@ const CATEGORY_PATTERNS = [
 
 const inventories = new Map();
 const portfolio = new Map();
+const walletAgents = new Map();
+const agentTargets = new Map();
 let treasury = {
   tvl: 42690,
   rewardsPerHour: 128,
@@ -223,15 +226,66 @@ function applyEconomy(category, resourceKey, playerId, playerName) {
 function summarizePortfolio(state) {
   return {
     name: state.name,
+    playerId: state.playerId,
     stakedSol: Number(state.stakedSol.toFixed(2)),
     lpShares: Number(state.lpShares.toFixed(2)),
     claimable: Math.round(state.claimable),
+    sglYield: Math.round(state.claimable),
     protocolXp: state.protocolXp,
     riskScore: state.riskScore,
   };
 }
 
+function walletHash(input) {
+  let hash = 2166136261;
+  for (const ch of String(input || '')) {
+    hash ^= ch.charCodeAt(0);
+    hash = Math.imul(hash, 16777619);
+  }
+  return Math.abs(hash >>> 0);
+}
+
+function walletAgentId(wallet) {
+  return `wallet_agent_${walletHash(wallet).toString(16).padStart(8, '0')}`;
+}
+
+function walletAlias(wallet, pet) {
+  const prefixes = {
+    codex: 'Codex Pet',
+    claude: 'Claude Pet',
+    generated: 'SGL Agent',
+  };
+  const suffix = String(wallet || '').replace(/[^a-z0-9]/gi, '').slice(-4).toUpperCase() || '0000';
+  return `${prefixes[pet] || prefixes.generated} ${suffix}`;
+}
+
+function getNavigableProtocolZones(worldEngine) {
+  const worldMap = worldEngine.getWorldMap();
+  const layer = worldMap?.layers?.find((l) => l.name === 'SemanticZones' || l.type === 'objectgroup');
+  return (layer?.objects || [])
+    .map((zone) => ({ zone, category: inferCategory(zone.name) }))
+    .filter((entry) => entry.category && ZONE_DEFS[entry.category])
+    .map(({ zone, category }) => ({
+      name: zone.name,
+      category,
+      x: Math.round((zone.x || 0) / 32),
+      y: Math.round((zone.y || 0) / 32),
+    }));
+}
+
+function chooseAgentTarget(agentId, worldEngine) {
+  const zones = getNavigableProtocolZones(worldEngine);
+  if (!zones.length) return null;
+  const seed = walletHash(`${agentId}:${Date.now()}`);
+  return zones[seed % zones.length];
+}
+
 class SolanaEconomyPlugin extends IPlugin {
+  constructor() {
+    super();
+    this.agentTimer = null;
+  }
+
   get id() { return '@solana-game-life/economy'; }
   get version() { return '1.0.0'; }
 
@@ -297,6 +351,69 @@ class SolanaEconomyPlugin extends IPlugin {
         players,
       });
     }, { requireSession: false });
+
+    ctx.registerRoute('post', '/solana/agent/spawn', (req, res) => {
+      const { wallet, pet = 'generated' } = req.body || {};
+      if (!wallet || String(wallet).trim().length < 4) {
+        return res.status(400).json({ success: false, error: 'Add a wallet name or address first.' });
+      }
+      const cleanWallet = String(wallet).trim().slice(0, 80);
+      const petType = ['generated', 'codex', 'claude'].includes(pet) ? pet : 'generated';
+      const playerId = walletAgentId(cleanWallet);
+      const name = walletAlias(cleanWallet, petType);
+      const sprite = ['Boy', 'FighterRed', 'Monk', 'Princess'][walletHash(cleanWallet) % 4];
+      const player = req.app.locals.worldEngine.join(playerId, name, sprite, { trackActivity: true });
+      walletAgents.set(playerId, { wallet: cleanWallet, pet: petType, createdAt: Date.now() });
+      const state = getPlayerPortfolio(playerId, name);
+      state.pet = petType;
+      req.app.locals.worldEngine.recordPluginActivity(playerId, `Booted ${name} as a ${petType} avatar. Autopilot is hunting SGL yield.`, 'defi');
+      res.json({
+        success: true,
+        agent: {
+          id: playerId,
+          name,
+          pet: petType,
+          sprite,
+          x: player.x,
+          y: player.y,
+          sglYield: Math.round(state.claimable),
+          portfolio: summarizePortfolio(state),
+        },
+      });
+    }, { requireSession: false });
+
+    ctx.registerRoute('get', '/solana/agent/:agentId/yield', (req, res) => {
+      const state = getPlayerPortfolio(req.params.agentId, walletAgents.get(req.params.agentId)?.name);
+      res.json({ success: true, portfolio: summarizePortfolio(state) });
+    }, { requireSession: false });
+
+    this.agentTimer = setInterval(async () => {
+      if (walletAgents.size === 0) return;
+      const players = worldEngine.getAllPlayers();
+      for (const agentId of walletAgents.keys()) {
+        const player = players[agentId];
+        if (!player) continue;
+        let target = agentTargets.get(agentId);
+        if (!target || (Math.abs(player.x - target.x) <= 1 && Math.abs(player.y - target.y) <= 1)) {
+          if (target) {
+            worldEngine.interact(agentId, null);
+          }
+          target = chooseAgentTarget(agentId, worldEngine);
+          if (target) {
+            agentTargets.set(agentId, target);
+            worldEngine.recordPluginActivity(agentId, `Routing to ${ZONE_DEFS[target.category].label} for SGL yield`, 'defi');
+          }
+        }
+        if (target) {
+          await worldEngine.move(agentId, { x: target.x, y: target.y });
+        }
+      }
+    }, 7_000);
+    if (typeof this.agentTimer.unref === 'function') this.agentTimer.unref();
+  }
+
+  async onUnregister() {
+    if (this.agentTimer) clearInterval(this.agentTimer);
   }
 }
 

@@ -71,6 +71,23 @@
       </div>
 
       <div id="side-panel">
+        <div id="agent-launch-panel">
+          <h3>Launch Agent</h3>
+          <div class="agent-launch-row">
+            <input id="wallet-input" type="text" maxlength="80" placeholder="Wallet or handle">
+            <select id="pet-select" aria-label="Avatar type">
+              <option value="generated">Generated SGL</option>
+              <option value="codex">Codex Pet</option>
+              <option value="claude">Claude Pet</option>
+            </select>
+          </div>
+          <button id="spawn-agent-btn" type="button">Start Yield Run</button>
+          <div id="wallet-yield-card">
+            <span id="wallet-agent-name">No wallet agent yet</span>
+            <strong id="wallet-sgl-yield">0 SGL</strong>
+            <small id="wallet-agent-status">Generate an avatar and send it to work.</small>
+          </div>
+        </div>
         <div id="minimap-container">
           <h3>Protocol Map</h3>
           <canvas id="minimapCanvas" width="300" height="330"></canvas>
