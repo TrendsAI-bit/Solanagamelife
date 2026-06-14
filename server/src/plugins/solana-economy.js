@@ -225,11 +225,14 @@ function applyEconomy(category, resourceKey, playerId, playerName) {
   treasury.rewardsPerHour += Math.max(1, Math.round(reward / 4));
   treasury.lpFees += category === 'marketplace' || category === 'warehouse' ? reward : 3;
   treasury.risk = Math.max(4, Math.min(100, Math.round((treasury.risk * 0.82) + (state.riskScore * 0.18))));
-  treasury.lastEvent = `${playerName} used ${resourceKey.replace(/_/g, ' ')} (+${Math.round(state.claimable - beforeClaimable)} DUST)`;
+  treasury.lastEvent = `${playerName} used ${resourceKey.replace(/_/g, ' ')} (+${Math.round(state.claimable - beforeClaimable)} SGL)`;
   return state;
 }
 
 function summarizePortfolio(state) {
+  const level = Math.max(1, Math.floor((state.protocolXp || 0) / 100) + 1);
+  const currentLevelXp = (level - 1) * 100;
+  const nextLevelXp = level * 100;
   return {
     name: state.name,
     playerId: state.playerId,
@@ -238,6 +241,9 @@ function summarizePortfolio(state) {
     claimable: Math.round(state.claimable),
     sglYield: Math.round(state.claimable),
     protocolXp: state.protocolXp,
+    level,
+    nextLevelXp,
+    levelProgress: Math.max(0, Math.min(100, Math.round(((state.protocolXp - currentLevelXp) / (nextLevelXp - currentLevelXp)) * 100))),
     riskScore: state.riskScore,
     mode: state.mode || 'normal',
     treasureClues: state.treasureClues || 0,
@@ -325,7 +331,7 @@ class SolanaEconomyPlugin extends IPlugin {
         ctx.emitActivity({
           id: playerId,
           name: playerName,
-          text: `Portfolio: ${Math.round(state.claimable)} DUST claimable, ${state.stakedSol.toFixed(2)} SOL staked, ${state.lpShares.toFixed(2)} LP shares`,
+          text: `Portfolio: ${Math.round(state.claimable)} SGL claimable, ${state.stakedSol.toFixed(2)} SOL staked, ${state.lpShares.toFixed(2)} LP shares`,
           type: 'defi',
         });
         return ZONE_DEFS[resolvedCategory].interactions[resourceKey];
@@ -409,6 +415,35 @@ class SolanaEconomyPlugin extends IPlugin {
     ctx.registerRoute('get', '/solana/agent/:agentId/yield', (req, res) => {
       const state = getPlayerPortfolio(req.params.agentId, walletAgents.get(req.params.agentId)?.name);
       res.json({ success: true, portfolio: summarizePortfolio(state) });
+    }, { requireSession: false });
+
+    ctx.registerRoute('post', '/solana/agent/:agentId/command', async (req, res) => {
+      const { agentId } = req.params;
+      const meta = walletAgents.get(agentId);
+      if (!meta) return res.status(404).json({ success: false, error: 'Wallet agent not found. Launch an agent first.' });
+      const x = Number(req.body?.x);
+      const y = Number(req.body?.y);
+      if (!Number.isFinite(x) || !Number.isFinite(y)) {
+        return res.status(400).json({ success: false, error: 'Choose a valid map location.' });
+      }
+      const worldMap = req.app.locals.worldEngine.getWorldMap();
+      const maxX = Math.max(0, (worldMap?.width || 1) - 1);
+      const maxY = Math.max(0, (worldMap?.height || 1) - 1);
+      const target = {
+        x: Math.max(0, Math.min(maxX, Math.round(x))),
+        y: Math.max(0, Math.min(maxY, Math.round(y))),
+        category: 'manual',
+        name: 'Player Marker',
+      };
+      agentTargets.set(agentId, target);
+      const player = req.app.locals.worldEngine.getAllPlayers()[agentId];
+      req.app.locals.worldEngine.recordPluginActivity(agentId, `Player command: route to (${target.x}, ${target.y})`, 'defi');
+      const result = await req.app.locals.worldEngine.move(agentId, { x: target.x, y: target.y });
+      const state = getPlayerPortfolio(agentId, player?.name || meta.wallet);
+      state.protocolXp += 5;
+      treasury.lastEvent = `${state.name} accepted a player route command (+5 XP)`;
+      if (!result || result.error) return res.status(400).json({ success: false, error: result?.error || 'Route blocked' });
+      res.json({ success: true, target, portfolio: summarizePortfolio(state) });
     }, { requireSession: false });
 
     this.agentTimer = setInterval(async () => {

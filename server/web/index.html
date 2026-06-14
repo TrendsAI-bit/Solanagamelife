@@ -16,10 +16,22 @@
         transition: opacity 0.6s ease;
       }
       #loading-screen.fade-out { opacity: 0; pointer-events: none; }
-      #loading-screen img {
-        width: 180px; height: 180px; object-fit: contain;
+      #loading-screen .loading-logo {
+        width: 184px; height: 184px;
+        border: 4px solid #26f2c2;
+        box-shadow: inset 0 0 0 3px #8f5cff, 0 0 28px rgba(38,242,194,0.42);
+        color: #26f2c2;
+        display: flex; flex-direction: column; align-items: center; justify-content: center;
+        font-family: 'Pixelify Sans', sans-serif;
         animation: logoPulse 2s ease-in-out infinite;
         filter: drop-shadow(0 0 20px rgba(0,200,255,0.3));
+      }
+      #loading-screen .loading-logo span {
+        font-size: 54px; font-weight: 700; line-height: 1;
+        text-shadow: 3px 3px 0 #8f5cff;
+      }
+      #loading-screen .loading-logo small {
+        margin-top: 8px; color: #d9f8ef; font-size: 13px;
       }
       @keyframes logoPulse {
         0%, 100% { transform: scale(1); filter: drop-shadow(0 0 20px rgba(0,200,255,0.3)); }
@@ -39,9 +51,12 @@
         font-family: sans-serif; font-size: 13px; letter-spacing: 1px;
       }
     </style>
-    <img src="assets/logo.png" alt="Solana Game Life">
+    <div class="loading-logo" aria-label="Solana Game Life">
+      <span>SGL</span>
+      <small>Solana Game Life</small>
+    </div>
     <div id="loading-bar-wrap"><div id="loading-bar"></div></div>
-    <div id="loading-text">Loading...</div>
+    <div id="loading-text">Syncing protocol...</div>
   </div>
 
   <h1>Solana Game Life</h1>
@@ -56,7 +71,7 @@
           <button class="tool-btn" id="sfx-toggle">SFX ON</button>
         </div>
         <canvas id="gameCanvas" width="800" height="600"></canvas>
-        <div id="zoom-hint">Scroll to zoom · drag to pan · click agents to follow</div>
+        <div id="zoom-hint">Scroll to zoom · drag to pan · click map to route your wallet agent</div>
         <div id="zoom-controls">
           <button class="zoom-btn" id="zoom-in-btn" title="Zoom In">
             <svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
@@ -94,7 +109,21 @@
             <span id="wallet-agent-name">No wallet agent yet</span>
             <strong id="wallet-sgl-yield">0 SGL</strong>
             <small id="wallet-agent-status">Generate an avatar and send it to work.</small>
+            <div id="wallet-level-wrap">
+              <span id="wallet-level-label">Level 1</span>
+              <span id="wallet-level-xp">0%</span>
+              <div id="wallet-level-bar"><span></span></div>
+            </div>
           </div>
+        </div>
+        <div id="challenge-panel">
+          <h3>Hot Spring Challenge</h3>
+          <canvas id="challengeCanvas" width="220" height="120"></canvas>
+          <div id="challenge-row">
+            <button id="challenge-start-btn" type="button">Start</button>
+            <span id="challenge-score">0 pts</span>
+          </div>
+          <small id="challenge-status">Four-hour holder sprint: top in-game SGL holder gets a surprise event.</small>
         </div>
         <div id="minimap-container">
           <h3>Protocol Map</h3>

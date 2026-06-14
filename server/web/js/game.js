@@ -89,8 +89,62 @@
     const walletAgentNameEl = document.getElementById('wallet-agent-name');
     const walletSglYieldEl = document.getElementById('wallet-sgl-yield');
     const walletAgentStatusEl = document.getElementById('wallet-agent-status');
+    const walletLevelLabelEl = document.getElementById('wallet-level-label');
+    const walletLevelXpEl = document.getElementById('wallet-level-xp');
+    const walletLevelBarEl = document.querySelector('#wallet-level-bar span');
+    const challengeCanvas = document.getElementById('challengeCanvas');
+    const challengeCtx = challengeCanvas ? challengeCanvas.getContext('2d') : null;
+    const challengeStartBtn = document.getElementById('challenge-start-btn');
+    const challengeScoreEl = document.getElementById('challenge-score');
+    const challengeStatusEl = document.getElementById('challenge-status');
     let localWalletAgentId = localStorage.getItem('sgl-agent-id') || '';
     let connectedWalletAddress = localStorage.getItem('sgl-wallet') || '';
+    let lastEconomyEvent = '';
+    let challengeRunning = false;
+    let challengeState = null;
+
+    function displayZoneName(name) {
+      const n = String(name || '').toLowerCase();
+      if (n.includes('farm') || n.includes('农场') || n.includes('grass') || n.includes('草')) return 'Farm';
+      if (n.includes('market') || n.includes('集市')) return 'Market';
+      if (n.includes('shrine') || n.includes('神社')) return 'Shrine';
+      if (n.includes('warehouse') || n.includes('仓库')) return 'Vault';
+      if (n.includes('potion') || n.includes('magic') || n.includes('药水') || n.includes('魔药')) return 'Risk Lab';
+      if (n.includes('practice') || n.includes('练习') || n.includes('library') || n.includes('book')) return 'Library';
+      if (n.includes('hot') || n.includes('温泉')) return 'Hot Spring';
+      if (n.includes('pond') || n.includes('water') || n.includes('池塘')) return 'Pool';
+      if (n.includes('dock') || n.includes('码头')) return 'Dock';
+      if (n.includes('blacksmith') || n.includes('铁匠')) return 'Forge';
+      if (n.includes('watchtower') || n.includes('瞭望')) return 'Tower';
+      if (n.includes('tree') || n.includes('树')) return 'Tree';
+      return String(name || 'Zone').replace(/\([^)]*\)/g, '').trim() || 'Zone';
+    }
+
+    function showEventToast(text) {
+      const toast = document.createElement('div');
+      toast.className = 'event-toast';
+      toast.textContent = text;
+      document.body.appendChild(toast);
+      setTimeout(() => toast.remove(), 2600);
+    }
+
+    function burstAtWorld(x, y, kind = 'treasure') {
+      const colors = kind === 'treasure' ? ['#ffcf5a', '#26f2c2', '#ff5fd7'] : ['#26f2c2', '#8f5cff'];
+      for (let i = 0; i < 36; i++) {
+        const angle = Math.random() * Math.PI * 2;
+        const speed = 0.9 + Math.random() * 2.2;
+        particles.push({
+          type: 'eventBurst',
+          x, y,
+          vx: Math.cos(angle) * speed,
+          vy: Math.sin(angle) * speed - 0.8,
+          size: 2 + Math.random() * 3,
+          color: colors[i % colors.length],
+          life: 42 + Math.random() * 22,
+          maxLife: 64,
+        });
+      }
+    }
 
     // === 背景音乐 ===
     const bgm = new Audio('assets/musics/36-Village.ogg');
@@ -208,6 +262,8 @@
             } else {
               showShrinePopup(clickedZone.name, e.clientX, e.clientY);
             }
+          } else if (localWalletAgentId) {
+            commandLocalAgentTo(mouseX / TILE_SIZE, mouseY / TILE_SIZE);
           } else {
             closeZonePopup();
             isCameraFollowing = false;
@@ -319,6 +375,8 @@
             const sx = mouseScreenX / canvas.width * rect.width + rect.left;
             const sy = mouseScreenY / canvas.height * rect.height + rect.top;
             showZonePopup(tappedZone.name, sx, sy);
+          } else if (localWalletAgentId) {
+            commandLocalAgentTo(mouseX / TILE_SIZE, mouseY / TILE_SIZE);
           } else {
             closeZonePopup();
           }
@@ -441,7 +499,7 @@
       document.body.classList.add('cyberpunk-mode');
       const now = Date.now();
       const demoPlayers = {
-        demo_farmer: { id: 'demo_farmer', name: 'Yield Farmer', sprite: 'Boy', solanaSpriteIndex: 0, x: 14, y: 42, lastDirection: 'S', currentZoneName: 'Yield Farm', message: 'Compounding DUST rewards', interactionText: 'harvesting SOL seeds', interactionIcon: 'Honey', lastActionAt: now, lastHeartbeatAt: now },
+        demo_farmer: { id: 'demo_farmer', name: 'Yield Farmer', sprite: 'Boy', solanaSpriteIndex: 0, x: 14, y: 42, lastDirection: 'S', currentZoneName: 'Yield Farm', message: 'Compounding SGL rewards', interactionText: 'harvesting SOL seeds', interactionIcon: 'Honey', lastActionAt: now, lastHeartbeatAt: now },
         demo_lp: { id: 'demo_lp', name: 'LP Vault Engineer', sprite: 'FighterRed', solanaSpriteIndex: 1, x: 22, y: 18, lastDirection: 'E', currentZoneName: 'LP Vault', message: '', interactionText: 'opening fee crates', interactionIcon: 'GoldCoin', lastActionAt: now, lastHeartbeatAt: now },
         demo_validator: { id: 'demo_validator', name: 'Validator Monk', sprite: 'Monk', solanaSpriteIndex: 2, x: 38, y: 32, lastDirection: 'W', currentZoneName: 'Validator Shrine', message: 'Vote credits look clean', interactionText: '', interactionIcon: '', lastActionAt: now, lastHeartbeatAt: now },
         demo_mm: { id: 'demo_mm', name: 'Market Maker', sprite: 'Princess', solanaSpriteIndex: 3, x: 46, y: 45, lastDirection: 'N', currentZoneName: 'AMM Market', message: 'Routing a SOL/USDC swap', interactionText: '', interactionIcon: '', lastActionAt: now, lastHeartbeatAt: now },
@@ -690,6 +748,7 @@
         if (p.life<=0){particles.splice(i,1);continue;}
         if (p.type==='firefly'){p.x+=p.vx*dt;p.y+=p.vy*dt;p.vx+=(Math.random()-0.5)*20*dt;p.vy+=(Math.random()-0.5)*15*dt;p.vx=Math.max(-20,Math.min(20,p.vx));p.vy=Math.max(-15,Math.min(15,p.vy));}
         else if (p.type==='leaf'){p.x+=p.vx*dt;p.y+=p.vy*dt;p.rot+=p.rotSpeed*dt;}
+        else if (p.type==='eventBurst'){p.x+=p.vx*dt*24;p.y+=p.vy*dt*24;p.vy+=2.2*dt;}
       }
     }
 
@@ -1147,6 +1206,13 @@
         } else if(type==='shimmer'){
           const alpha=fadeRatio*(0.3+0.3*Math.sin(Date.now()/150+p.x));
           ctx.beginPath();ctx.arc(p.x,p.y,p.size,0,Math.PI*2);ctx.fillStyle=`rgba(200,230,255,${alpha})`;ctx.fill();
+        } else if(type==='eventBurst'){
+          const alpha=Math.max(0, p.life / p.maxLife);
+          ctx.save();
+          ctx.globalAlpha=alpha;
+          ctx.fillStyle=p.color||'#26f2c2';
+          ctx.fillRect(p.x-p.size/2,p.y-p.size/2,p.size,p.size);
+          ctx.restore();
         }
       }
     }
@@ -1180,7 +1246,7 @@
           if(!n.includes('tree')&&!n.includes('paved')&&!n.includes('grass')){
             miniCtx.font='7px "Pixelify Sans",sans-serif';miniCtx.fillStyle='rgba(255,255,255,0.7)';
             miniCtx.textAlign='center';miniCtx.textBaseline='middle';
-            miniCtx.fillText(zone.name.split('(')[0].trim().substring(0,6),zx+zw/2,zy+zh/2);
+            miniCtx.fillText(displayZoneName(zone.name).substring(0,9),zx+zw/2,zy+zh/2);
           }
         });
       }
@@ -1316,8 +1382,8 @@
       if (!economyContentEl) return;
       economyContentEl.innerHTML = ''
         + '<div class="stat-row">TVL: <span class="stat-name">$42,690</span></div>'
-        + '<div class="stat-row">Emissions: <span class="stat-name">128 DUST/hr</span></div>'
-        + '<div class="stat-row">LP Fees: <span class="stat-name">314 DUST</span></div>'
+        + '<div class="stat-row">Emissions: <span class="stat-name">128 SGL/hr</span></div>'
+        + '<div class="stat-row">LP Fees: <span class="stat-name">314 SGL</span></div>'
         + '<div class="stat-row">Risk: <span class="stat-name">18%</span></div>'
         + '<div class="stat-row">Static Vercel demo economy</div>';
     }
@@ -1333,12 +1399,42 @@
       const p = portfolio || agent.portfolio || {};
       walletAgentNameEl.textContent = agent?.name || p.name || 'SGL Agent';
       walletSglYieldEl.textContent = `${Number(p.sglYield || p.claimable || agent?.sglYield || 0).toLocaleString()} SGL`;
+      const level = Number(p.level || 1);
+      const progress = Number(p.levelProgress || 0);
+      if (walletLevelLabelEl) walletLevelLabelEl.textContent = `Level ${level}`;
+      if (walletLevelXpEl) walletLevelXpEl.textContent = `${progress}%`;
+      if (walletLevelBarEl) walletLevelBarEl.style.width = `${progress}%`;
       const mode = p.mode || agent?.mode || 'normal';
       const modeLabel = mode === 'adventure' ? 'Adventure Mine' : 'Normal Work';
       const extra = mode === 'adventure'
         ? ` · ${Number(p.mineAttempts || 0)} mines · ${Number(p.treasureClues || 0)} clues`
         : ` · ${Number(p.stakedSol || 0).toFixed(2)} SOL · ${Number(p.lpShares || 0).toFixed(2)} LP`;
       walletAgentStatusEl.textContent = `${modeLabel}${extra} · risk ${Number(p.riskScore || 0)}%`;
+    }
+
+    function commandLocalAgentTo(tileX, tileY) {
+      if (!localWalletAgentId) {
+        showEventToast('Launch a wallet agent first.');
+        return;
+      }
+      const x = Math.max(0, Math.round(tileX));
+      const y = Math.max(0, Math.round(tileY));
+      walletAgentStatusEl.textContent = `Routing to (${x}, ${y})...`;
+      burstAtWorld(x * TILE_SIZE + TILE_SIZE / 2, y * TILE_SIZE + TILE_SIZE / 2, 'route');
+      fetch(`/api/solana/agent/${encodeURIComponent(localWalletAgentId)}/command`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ x, y }),
+      })
+        .then(r => r.json())
+        .then(data => {
+          if (!data?.success) throw new Error(data?.error || 'Route failed');
+          updateWalletYieldCard(null, data.portfolio);
+          showEventToast(`Agent routed to (${data.target.x}, ${data.target.y})`);
+        })
+        .catch(err => {
+          walletAgentStatusEl.textContent = err.message || 'Route failed.';
+        });
     }
 
     function refreshWalletYield() {
@@ -1439,6 +1535,82 @@
     refreshWalletYield();
     setInterval(refreshWalletYield, 5000);
 
+    function drawChallenge() {
+      if (!challengeCtx || !challengeCanvas) return;
+      const w = challengeCanvas.width, h = challengeCanvas.height;
+      challengeCtx.clearRect(0,0,w,h);
+      challengeCtx.fillStyle = '#080b18';
+      challengeCtx.fillRect(0,0,w,h);
+      challengeCtx.fillStyle = 'rgba(38,242,194,0.12)';
+      for (let x = 0; x < w; x += 18) challengeCtx.fillRect(x, 0, 1, h);
+      if (!challengeState) {
+        challengeCtx.fillStyle = '#9bb3c8';
+        challengeCtx.font = '12px "Pixelify Sans", sans-serif';
+        challengeCtx.textAlign = 'center';
+        challengeCtx.fillText('Click Start, then tap to flap', w/2, h/2);
+        return;
+      }
+      for (const gate of challengeState.gates) {
+        challengeCtx.fillStyle = '#26f2c2';
+        challengeCtx.fillRect(gate.x, 0, gate.w, gate.gapY - gate.gap / 2);
+        challengeCtx.fillRect(gate.x, gate.gapY + gate.gap / 2, gate.w, h - gate.gapY);
+      }
+      challengeCtx.fillStyle = '#ffcf5a';
+      challengeCtx.fillRect(30, challengeState.y - 5, 12, 10);
+      challengeCtx.fillStyle = '#ff5fd7';
+      challengeCtx.fillRect(26, challengeState.y - 2, 5, 4);
+    }
+
+    function flapChallenge() {
+      if (!challengeRunning || !challengeState) return;
+      challengeState.vy = -3.2;
+    }
+
+    function finishChallenge() {
+      challengeRunning = false;
+      const score = challengeState?.score || 0;
+      if (challengeStatusEl) challengeStatusEl.textContent = `Run complete: ${score} pts. Holder sprint event resets every 4 hours.`;
+      if (score >= 8 && localWalletAgentId) {
+        commandLocalAgentTo((camera.x + VIEWPORT_W / 2) / TILE_SIZE, (camera.y + VIEWPORT_H / 2) / TILE_SIZE);
+      }
+      drawChallenge();
+    }
+
+    function tickChallenge() {
+      if (!challengeRunning || !challengeState) return;
+      const s = challengeState;
+      s.frame += 1;
+      s.vy += 0.18;
+      s.y += s.vy;
+      if (s.frame % 70 === 0) s.gates.push({ x: challengeCanvas.width, w: 16, gap: 42, gapY: 32 + Math.random() * 55, scored: false });
+      for (const gate of s.gates) {
+        gate.x -= 2;
+        if (!gate.scored && gate.x + gate.w < 30) {
+          gate.scored = true;
+          s.score += 1;
+          if (challengeScoreEl) challengeScoreEl.textContent = `${s.score} pts`;
+        }
+        const hitX = gate.x < 42 && gate.x + gate.w > 26;
+        const hitY = s.y < gate.gapY - gate.gap / 2 || s.y > gate.gapY + gate.gap / 2;
+        if (hitX && hitY) return finishChallenge();
+      }
+      s.gates = s.gates.filter(g => g.x > -20);
+      if (s.y < 6 || s.y > challengeCanvas.height - 6) return finishChallenge();
+      drawChallenge();
+      requestAnimationFrame(tickChallenge);
+    }
+
+    function startChallenge() {
+      challengeState = { y: 60, vy: 0, frame: 0, score: 0, gates: [{ x: 150, w: 16, gap: 44, gapY: 62, scored: false }] };
+      challengeRunning = true;
+      if (challengeScoreEl) challengeScoreEl.textContent = '0 pts';
+      if (challengeStatusEl) challengeStatusEl.textContent = 'Tap the hot-spring drone through the gates.';
+      tickChallenge();
+    }
+    if (challengeStartBtn) challengeStartBtn.addEventListener('click', startChallenge);
+    if (challengeCanvas) challengeCanvas.addEventListener('click', flapChallenge);
+    drawChallenge();
+
     function fetchEconomy() {
       fetch('/api/solana/economy')
         .then(r => r.ok ? r.json() : null)
@@ -1449,6 +1621,14 @@
           }
           const t = data.treasury || {};
           const leader = (data.players || []).sort((a,b) => (b.claimable || 0) - (a.claimable || 0))[0];
+          if (t.lastEvent && t.lastEvent !== lastEconomyEvent) {
+            if (lastEconomyEvent && /found|mined|surprise|route/i.test(t.lastEvent)) {
+              showEventToast(t.lastEvent);
+              const p = leader && clientPlayers[leader.playerId] ? clientPlayers[leader.playerId] : clientPlayers[localWalletAgentId];
+              burstAtWorld((p?.displayX || camera.x + VIEWPORT_W / 2) + TILE_SIZE / 2, (p?.displayY || camera.y + VIEWPORT_H / 2) + TILE_SIZE / 2, /found|surprise/i.test(t.lastEvent) ? 'treasure' : 'route');
+            }
+            lastEconomyEvent = t.lastEvent;
+          }
           let html = '';
           html += `<div class="stat-row">TVL: <span class="stat-name">$${Number(t.tvl || 0).toLocaleString()}</span></div>`;
           html += `<div class="stat-row">Emissions: <span class="stat-name">${Number(t.rewardsPerHour || 0).toLocaleString()} SGL/hr</span></div>`;
