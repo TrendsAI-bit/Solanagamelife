@@ -195,6 +195,7 @@ function getPlayerPortfolio(playerId, playerName) {
       treasureClues: 0,
       mineAttempts: 0,
       treasureShards: 0,
+      btcRelics: 0,
     };
     portfolio.set(playerId, state);
   }
@@ -249,6 +250,7 @@ function summarizePortfolio(state) {
     treasureClues: state.treasureClues || 0,
     mineAttempts: state.mineAttempts || 0,
     treasureShards: state.treasureShards || 0,
+    btcRelics: state.btcRelics || 0,
   };
 }
 
@@ -293,11 +295,15 @@ function getNavigableProtocolZones(worldEngine) {
     }));
 }
 
-function chooseAgentTarget(agentId, worldEngine) {
+function chooseAgentTarget(agentId, worldEngine, mode = 'normal') {
   const zones = getNavigableProtocolZones(worldEngine);
   if (!zones.length) return null;
+  const mapWidth = worldEngine.getWorldMap()?.width || 60;
+  const split = mapWidth * 0.56;
+  const districtZones = zones.filter((zone) => mode === 'adventure' ? zone.x >= split : zone.x < split);
+  const targetZones = districtZones.length ? districtZones : zones;
   const seed = walletHash(`${agentId}:${Date.now()}`);
-  return zones[seed % zones.length];
+  return targetZones[seed % targetZones.length];
 }
 
 class SolanaEconomyPlugin extends IPlugin {
@@ -392,7 +398,7 @@ class SolanaEconomyPlugin extends IPlugin {
       req.app.locals.worldEngine.recordPluginActivity(
         playerId,
         playMode === 'adventure'
-          ? `Booted ${name} in Adventure Mine mode. Hunting map clues and simulated treasure shards.`
+          ? `Booted ${name} in Adventure Mine mode. Hunting map clues and a simulated one-BTC relic.`
           : `Booted ${name} in Normal Work mode. Building farms, reading books, and growing SGL yield.`,
         'defi'
       );
@@ -467,20 +473,21 @@ class SolanaEconomyPlugin extends IPlugin {
               state.protocolXp += 8;
               state.treasureClues += Math.random() < 0.35 ? 1 : 0;
               treasury.treasurePool += 7;
-              const hit = Math.random() < 0.00001;
+              const hit = Math.random() < 0.00000001;
               if (hit) {
                 state.treasureShards += 1;
-                state.claimable += 777;
-                treasury.treasurePool = Math.max(0, treasury.treasurePool - 777);
-                treasury.lastEvent = `${player.name} found a legendary simulated treasure shard (+777 SGL)`;
-                worldEngine.recordPluginActivity(agentId, 'Found a legendary simulated treasure shard and banked 777 SGL.', 'defi');
+                state.btcRelics += 1;
+                state.claimable += 21000;
+                treasury.treasurePool = Math.max(0, treasury.treasurePool - 21000);
+                treasury.lastEvent = `${player.name} found the simulated one-BTC relic (+21,000 SGL)`;
+                worldEngine.recordPluginActivity(agentId, 'Found the simulated one-BTC relic and banked 21,000 SGL.', 'defi');
               } else {
                 treasury.lastEvent = `${player.name} mined a risky map vein (+3 SGL)`;
                 worldEngine.recordPluginActivity(agentId, `Adventure mine attempt ${state.mineAttempts}: found clue dust and +3 SGL.`, 'defi');
               }
             }
           }
-          target = chooseAgentTarget(agentId, worldEngine);
+          target = chooseAgentTarget(agentId, worldEngine, mode);
           if (target) {
             agentTargets.set(agentId, target);
             worldEngine.recordPluginActivity(

@@ -958,6 +958,117 @@
       ctx.restore();
     }
 
+    function drawCryptoDistrictOverlay() {
+      if (!mapData) return;
+      const mapW = mapData.width * TILE_SIZE;
+      const mapH = mapData.height * TILE_SIZE;
+      const splitX = mapW * 0.56;
+      const top = 0;
+      const bottom = mapH;
+      const pulse = 0.5 + 0.5 * Math.sin(Date.now() / 700);
+
+      ctx.save();
+      ctx.globalCompositeOperation = 'screen';
+      ctx.fillStyle = 'rgba(38,242,194,0.09)';
+      ctx.fillRect(0, top, splitX, bottom);
+      ctx.fillStyle = 'rgba(143,92,255,0.14)';
+      ctx.fillRect(splitX, top, mapW - splitX, bottom);
+
+      ctx.strokeStyle = `rgba(255,207,90,${0.38 + pulse * 0.22})`;
+      ctx.lineWidth = 3 / camera.zoom;
+      ctx.setLineDash([12 / camera.zoom, 8 / camera.zoom]);
+      ctx.beginPath();
+      ctx.moveTo(splitX, 0);
+      ctx.lineTo(splitX, mapH);
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      const nodes = [
+        { x: splitX * 0.18, y: mapH * 0.22, label: 'STAKE' },
+        { x: splitX * 0.38, y: mapH * 0.44, label: 'FARM' },
+        { x: splitX * 0.72, y: mapH * 0.34, label: 'BOOKS' },
+        { x: splitX + (mapW - splitX) * 0.22, y: mapH * 0.24, label: 'MINE' },
+        { x: splitX + (mapW - splitX) * 0.55, y: mapH * 0.48, label: 'BTC' },
+        { x: splitX + (mapW - splitX) * 0.78, y: mapH * 0.72, label: 'RISK' },
+      ];
+      ctx.strokeStyle = 'rgba(38,242,194,0.24)';
+      ctx.lineWidth = 2 / camera.zoom;
+      for (let i = 1; i < nodes.length; i++) {
+        ctx.beginPath();
+        ctx.moveTo(nodes[i - 1].x, nodes[i - 1].y);
+        ctx.lineTo(nodes[i].x, nodes[i].y);
+        ctx.stroke();
+      }
+      for (const node of nodes) {
+        const isBtc = node.label === 'BTC';
+        ctx.fillStyle = isBtc ? '#ffcf5a' : '#26f2c2';
+        ctx.shadowColor = ctx.fillStyle;
+        ctx.shadowBlur = 10 / camera.zoom;
+        ctx.beginPath();
+        ctx.arc(node.x, node.y, (isBtc ? 9 : 6) / camera.zoom, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.shadowBlur = 0;
+        ctx.font = `${Math.max(10, 14 / camera.zoom)}px "Pixelify Sans", sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'top';
+        ctx.fillStyle = isBtc ? '#fff2bd' : '#d9f8ef';
+        ctx.strokeStyle = 'rgba(8,10,18,0.9)';
+        ctx.lineWidth = 3 / camera.zoom;
+        ctx.strokeText(node.label, node.x, node.y + 10 / camera.zoom);
+        ctx.fillText(node.label, node.x, node.y + 10 / camera.zoom);
+      }
+
+      function districtLabel(text, sub, x, y, color) {
+        ctx.font = `${Math.max(14, 22 / camera.zoom)}px "Pixelify Sans", sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillStyle = color;
+        ctx.strokeStyle = 'rgba(8,10,18,0.92)';
+        ctx.lineWidth = 5 / camera.zoom;
+        ctx.strokeText(text, x, y);
+        ctx.fillText(text, x, y);
+        ctx.font = `${Math.max(9, 12 / camera.zoom)}px "Pixelify Sans", sans-serif`;
+        ctx.strokeText(sub, x, y + 22 / camera.zoom);
+        ctx.fillText(sub, x, y + 22 / camera.zoom);
+      }
+      districtLabel('NORMAL WORK', 'farm · stake · read · compound', splitX * 0.5, mapH * 0.08, '#26f2c2');
+      districtLabel('ADVENTURE MINE', 'simulated BTC relic hunt', splitX + (mapW - splitX) * 0.5, mapH * 0.08, '#ffcf5a');
+      ctx.restore();
+    }
+
+    function drawDistrictHud() {
+      const split = Math.round(VIEWPORT_W * 0.56);
+      ctx.save();
+      ctx.font = 'bold 12px "Pixelify Sans", sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      function chip(x, y, w, label, sub, border, fill) {
+        ctx.fillStyle = fill;
+        ctx.strokeStyle = border;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.roundRect(x, y, w, 34, 6);
+        ctx.fill();
+        ctx.stroke();
+        ctx.fillStyle = border;
+        ctx.fillText(label, x + w / 2, y + 11);
+        ctx.font = '10px "Pixelify Sans", sans-serif';
+        ctx.fillStyle = '#d9f8ef';
+        ctx.fillText(sub, x + w / 2, y + 24);
+        ctx.font = 'bold 12px "Pixelify Sans", sans-serif';
+      }
+      chip(96, 46, 210, 'NORMAL WORK DISTRICT', 'yield · stake · books', '#26f2c2', 'rgba(8,10,18,0.74)');
+      chip(split + 36, 46, 230, 'ADVENTURE BTC RELIC MINE', 'simulated hunt · no real BTC payout', '#ffcf5a', 'rgba(8,10,18,0.78)');
+      ctx.strokeStyle = 'rgba(255,207,90,0.68)';
+      ctx.setLineDash([8, 6]);
+      ctx.beginPath();
+      ctx.moveTo(split, 52);
+      ctx.lineTo(split, VIEWPORT_H - 52);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.restore();
+    }
+
     // ==========================================
     // === 绘制玩家悬浮信息卡：屏幕坐标层 ===
     // ==========================================
@@ -1013,6 +1124,7 @@
 
       drawParticlesOfType('shimmer');
       drawCyberpunkOverlay();
+      drawCryptoDistrictOverlay();
       drawAnimDecors('bottom');
       drawNpcAnimals();
       drawStaticLandmarks();
@@ -1163,6 +1275,7 @@
       // 恢复到屏幕坐标后再绘制界面层，避免被镜头缩放影响。
       ctx.restore();
       ctx.imageSmoothingEnabled=true;
+      drawDistrictHud();
 
       // === 屏幕坐标层：检测玩家悬停 ===
       hoveredPlayerId=null;
@@ -1407,7 +1520,7 @@
       const mode = p.mode || agent?.mode || 'normal';
       const modeLabel = mode === 'adventure' ? 'Adventure Mine' : 'Normal Work';
       const extra = mode === 'adventure'
-        ? ` · ${Number(p.mineAttempts || 0)} mines · ${Number(p.treasureClues || 0)} clues`
+        ? ` · ${Number(p.mineAttempts || 0)} mines · ${Number(p.treasureClues || 0)} clues · ${Number(p.btcRelics || 0)} BTC relics`
         : ` · ${Number(p.stakedSol || 0).toFixed(2)} SOL · ${Number(p.lpShares || 0).toFixed(2)} LP`;
       walletAgentStatusEl.textContent = `${modeLabel}${extra} · risk ${Number(p.riskScore || 0)}%`;
     }
@@ -1635,6 +1748,7 @@
           html += `<div class="stat-row">LP Fees: <span class="stat-name">${Number(t.lpFees || 0).toLocaleString()} SGL</span></div>`;
           html += `<div class="stat-row">Risk: <span class="stat-name">${Number(t.risk || 0)}%</span></div>`;
           html += `<div class="stat-row">Treasure Pool: <span class="stat-name">${Number(t.treasurePool || 0).toLocaleString()} SGL</span></div>`;
+          html += '<div class="stat-row">Adventure Mine: <span class="stat-name">simulated BTC relic hunt</span></div>';
           if (leader) html += `<div class="stat-row">Top wallet: <span class="stat-name">${escapeHtml(leader.name)}</span> (${leader.sglYield || leader.claimable} SGL)</div>`;
           html += `<div class="stat-row">${escapeHtml(t.lastEvent || 'Economy initialized')}</div>`;
           economyContentEl.innerHTML = html;
