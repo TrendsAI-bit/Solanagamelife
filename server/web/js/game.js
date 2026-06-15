@@ -936,6 +936,204 @@
       }
     }
 
+    function getNeonProtocolZones() {
+      if (!mapData) return [];
+      const mapW = mapData.width * TILE_SIZE;
+      const mapH = mapData.height * TILE_SIZE;
+      return [
+        { id: 'spawn', label: 'Launch Gate', sub: 'wallet entry', x: mapW * 0.05, y: mapH * 0.08, w: mapW * 0.17, h: mapH * 0.15, color: '#26f2c2', kind: 'hub' },
+        { id: 'farm', label: 'Yield Farm', sub: 'compound SGL', x: mapW * 0.08, y: mapH * 0.32, w: mapW * 0.24, h: mapH * 0.24, color: '#26f2c2', kind: 'work' },
+        { id: 'vault', label: 'Stake Vault', sub: 'lock & level', x: mapW * 0.31, y: mapH * 0.14, w: mapW * 0.21, h: mapH * 0.20, color: '#8f5cff', kind: 'work' },
+        { id: 'library', label: 'Oracle Library', sub: 'read books', x: mapW * 0.30, y: mapH * 0.58, w: mapW * 0.23, h: mapH * 0.22, color: '#ffcf5a', kind: 'work' },
+        { id: 'bridge', label: 'Risk Bridge', sub: 'choose mode', x: mapW * 0.54, y: mapH * 0.30, w: mapW * 0.07, h: mapH * 0.42, color: '#ff5fd7', kind: 'bridge' },
+        { id: 'mine', label: 'Adventure Mine', sub: 'clue runs', x: mapW * 0.65, y: mapH * 0.13, w: mapW * 0.24, h: mapH * 0.25, color: '#ff5fd7', kind: 'adventure' },
+        { id: 'core', label: 'SGL Core', sub: 'hidden relic', x: mapW * 0.68, y: mapH * 0.48, w: mapW * 0.19, h: mapH * 0.19, color: '#ffcf5a', kind: 'core' },
+        { id: 'arena', label: 'Hot Spring Rush', sub: 'mini game', x: mapW * 0.70, y: mapH * 0.74, w: mapW * 0.23, h: mapH * 0.17, color: '#26f2c2', kind: 'event' },
+      ];
+    }
+
+    function getNeonZoneAtWorld(x, y) {
+      return getNeonProtocolZones().find(zone => x >= zone.x && x <= zone.x + zone.w && y >= zone.y && y <= zone.y + zone.h);
+    }
+
+    function drawNeonProtocolMap() {
+      if (!mapData) return;
+      const mapW = mapData.width * TILE_SIZE;
+      const mapH = mapData.height * TILE_SIZE;
+      const pulse = 0.5 + 0.5 * Math.sin(Date.now() / 650);
+      const zones = getNeonProtocolZones();
+
+      ctx.save();
+      ctx.fillStyle = '#050711';
+      ctx.fillRect(0, 0, mapW, mapH);
+
+      const bgGrad = ctx.createLinearGradient(0, 0, mapW, mapH);
+      bgGrad.addColorStop(0, '#07151d');
+      bgGrad.addColorStop(0.44, '#111026');
+      bgGrad.addColorStop(1, '#090713');
+      ctx.fillStyle = bgGrad;
+      ctx.fillRect(0, 0, mapW, mapH);
+
+      ctx.globalAlpha = 0.62;
+      ctx.strokeStyle = 'rgba(38,242,194,0.12)';
+      ctx.lineWidth = 1 / camera.zoom;
+      for (let x = 0; x <= mapW; x += TILE_SIZE * 2) {
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, mapH);
+        ctx.stroke();
+      }
+      ctx.strokeStyle = 'rgba(143,92,255,0.13)';
+      for (let y = 0; y <= mapH; y += TILE_SIZE * 2) {
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(mapW, y);
+        ctx.stroke();
+      }
+      ctx.globalAlpha = 1;
+
+      const laneY = mapH * 0.46;
+      const laneH = mapH * 0.10;
+      const splitX = mapW * 0.585;
+      ctx.fillStyle = 'rgba(12,18,31,0.92)';
+      ctx.fillRect(0, laneY, mapW, laneH);
+      ctx.fillRect(splitX - mapW * 0.035, mapH * 0.05, mapW * 0.07, mapH * 0.88);
+      ctx.strokeStyle = `rgba(255,207,90,${0.35 + pulse * 0.24})`;
+      ctx.lineWidth = 3 / camera.zoom;
+      ctx.setLineDash([12 / camera.zoom, 10 / camera.zoom]);
+      ctx.beginPath();
+      ctx.moveTo(splitX, mapH * 0.06);
+      ctx.lineTo(splitX, mapH * 0.93);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(mapW * 0.03, laneY + laneH / 2);
+      ctx.lineTo(mapW * 0.96, laneY + laneH / 2);
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      ctx.fillStyle = 'rgba(38,242,194,0.045)';
+      ctx.fillRect(0, 0, splitX, mapH);
+      ctx.fillStyle = 'rgba(255,95,215,0.05)';
+      ctx.fillRect(splitX, 0, mapW - splitX, mapH);
+
+      function drawCircuitPath(points, color) {
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 4 / camera.zoom;
+        ctx.shadowColor = color;
+        ctx.shadowBlur = 12 / camera.zoom;
+        ctx.beginPath();
+        points.forEach((point, index) => {
+          if (index === 0) ctx.moveTo(point.x, point.y);
+          else ctx.lineTo(point.x, point.y);
+        });
+        ctx.stroke();
+        ctx.shadowBlur = 0;
+        ctx.lineWidth = 1.5 / camera.zoom;
+        ctx.strokeStyle = 'rgba(255,255,255,0.24)';
+        ctx.stroke();
+      }
+
+      const centers = Object.fromEntries(zones.map(zone => [zone.id, { x: zone.x + zone.w / 2, y: zone.y + zone.h / 2 }]));
+      drawCircuitPath([centers.spawn, centers.vault, centers.bridge, centers.mine], 'rgba(38,242,194,0.58)');
+      drawCircuitPath([centers.farm, { x: mapW * 0.42, y: laneY + laneH / 2 }, centers.bridge, centers.core, centers.arena], 'rgba(255,95,215,0.48)');
+      drawCircuitPath([centers.library, { x: mapW * 0.50, y: mapH * 0.72 }, centers.core], 'rgba(255,207,90,0.48)');
+
+      zones.forEach((zone) => {
+        const isCore = zone.kind === 'core';
+        const lift = isCore ? 8 * pulse : 0;
+        const x = zone.x;
+        const y = zone.y - lift;
+        const w = zone.w;
+        const h = zone.h;
+        const color = zone.color;
+        const panelGrad = ctx.createLinearGradient(x, y, x, y + h);
+        panelGrad.addColorStop(0, 'rgba(18,24,47,0.96)');
+        panelGrad.addColorStop(1, zone.kind === 'adventure' ? 'rgba(36,12,46,0.92)' : 'rgba(7,13,28,0.94)');
+        ctx.fillStyle = panelGrad;
+        ctx.shadowColor = color;
+        ctx.shadowBlur = (isCore ? 26 : 16) / camera.zoom;
+        ctx.beginPath();
+        ctx.roundRect(x, y, w, h, 12 / camera.zoom);
+        ctx.fill();
+        ctx.shadowBlur = 0;
+        ctx.strokeStyle = color;
+        ctx.lineWidth = (isCore ? 3 : 2) / camera.zoom;
+        ctx.stroke();
+
+        ctx.fillStyle = 'rgba(255,255,255,0.05)';
+        for (let i = 0; i < 5; i++) {
+          const barW = w * (0.2 + ((i * 17) % 35) / 100);
+          const bx = x + w * 0.08 + i * w * 0.15;
+          const by = y + h - h * (0.24 + (i % 3) * 0.12);
+          ctx.fillRect(bx, by, Math.max(8, barW * 0.22), y + h - by - 8 / camera.zoom);
+        }
+
+        if (zone.kind === 'core') {
+          const cx = x + w / 2;
+          const cy = y + h / 2;
+          ctx.strokeStyle = `rgba(255,207,90,${0.42 + pulse * 0.36})`;
+          ctx.lineWidth = 3 / camera.zoom;
+          for (let r = 18; r <= 46; r += 14) {
+            ctx.beginPath();
+            ctx.arc(cx, cy, (r + pulse * 5) / camera.zoom, 0, Math.PI * 2);
+            ctx.stroke();
+          }
+          ctx.fillStyle = '#ffcf5a';
+          ctx.shadowColor = '#ffcf5a';
+          ctx.shadowBlur = 24 / camera.zoom;
+          ctx.beginPath();
+          ctx.arc(cx, cy, 12 / camera.zoom, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.shadowBlur = 0;
+        } else if (zone.kind === 'adventure') {
+          ctx.strokeStyle = 'rgba(255,255,255,0.15)';
+          ctx.lineWidth = 2 / camera.zoom;
+          for (let i = 0; i < 4; i++) {
+            const mx = x + w * (0.18 + i * 0.18);
+            ctx.beginPath();
+            ctx.moveTo(mx, y + h * 0.22);
+            ctx.lineTo(mx + w * 0.08, y + h * 0.72);
+            ctx.lineTo(mx - w * 0.06, y + h * 0.72);
+            ctx.closePath();
+            ctx.stroke();
+          }
+        } else if (zone.kind === 'event') {
+          ctx.fillStyle = 'rgba(38,242,194,0.16)';
+          ctx.beginPath();
+          ctx.arc(x + w * 0.18, y + h * 0.55, h * 0.24, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.strokeStyle = 'rgba(38,242,194,0.7)';
+          ctx.stroke();
+        }
+
+        ctx.font = `bold ${Math.max(12, 20 / camera.zoom)}px "Pixelify Sans", sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.lineWidth = 5 / camera.zoom;
+        ctx.strokeStyle = 'rgba(3,5,13,0.92)';
+        ctx.fillStyle = color;
+        ctx.strokeText(zone.label, x + w / 2, y + h * 0.20);
+        ctx.fillText(zone.label, x + w / 2, y + h * 0.20);
+        ctx.font = `${Math.max(9, 12 / camera.zoom)}px "Pixelify Sans", sans-serif`;
+        ctx.fillStyle = '#d9f8ef';
+        ctx.strokeText(zone.sub, x + w / 2, y + h * 0.32);
+        ctx.fillText(zone.sub, x + w / 2, y + h * 0.32);
+      });
+
+      ctx.font = `bold ${Math.max(14, 24 / camera.zoom)}px "Pixelify Sans", sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.lineWidth = 6 / camera.zoom;
+      ctx.strokeStyle = 'rgba(3,5,13,0.94)';
+      ctx.fillStyle = '#26f2c2';
+      ctx.strokeText('NORMAL WORK GRID', splitX * 0.46, mapH * 0.055);
+      ctx.fillText('NORMAL WORK GRID', splitX * 0.46, mapH * 0.055);
+      ctx.fillStyle = '#ff5fd7';
+      ctx.strokeText('ADVENTURE GRID', splitX + (mapW - splitX) * 0.50, mapH * 0.055);
+      ctx.fillText('ADVENTURE GRID', splitX + (mapW - splitX) * 0.50, mapH * 0.055);
+      ctx.restore();
+    }
+
     function drawCyberpunkOverlay() {
       if (!demoModeStarted) return;
       ctx.save();
@@ -1116,36 +1314,25 @@
       ctx.imageSmoothingEnabled=false;
       ctx.setTransform(camera.zoom,0,0,camera.zoom,-camera.x*camera.zoom,-camera.y*camera.zoom);
 
-      // 1. 先画底层地块，保证角色与装饰能压在上面。
-      ['BaseFloor','Floor','BaseNature'].forEach(name=>{
-        const l=mapData.layers.find(l=>l.type==='tilelayer'&&l.name===name&&l.visible);
-        if(l) for(let i=0;i<l.data.length;i++) drawTile(l.data[i],i%mapData.width,Math.floor(i/mapData.width));
-      });
+      // 1. The old TMJ map still powers movement, but the visible world is now
+      // a crypto protocol city drawn in canvas.
+      drawNeonProtocolMap();
 
       drawParticlesOfType('shimmer');
-      drawCyberpunkOverlay();
-      drawCryptoDistrictOverlay();
-      drawAnimDecors('bottom');
-      drawNpcAnimals();
-      drawStaticLandmarks();
       drawPlayerTrails();
 
       // 被选中玩家所在区域要持续高亮，方便远距离追踪。
       if(selectedPlayerId&&clientPlayers[selectedPlayerId]){
         const sp=clientPlayers[selectedPlayerId];
-        const zl=mapData.layers.find(l=>l.type==='objectgroup');
-        if(zl){
-          const zone=zl.objects.find(z=>z.name===sp.currentZoneName);
-          if(zone){
-            const sx2=TILE_SIZE/mapData.tilewidth,sy2=TILE_SIZE/mapData.tileheight;
-            const pulse=0.5+0.5*Math.sin(Date.now()/400);
-            ctx.save();
-            ctx.strokeStyle=`rgba(116,185,255,${0.3+0.35*pulse})`;
-            ctx.lineWidth=Math.max(1,3/camera.zoom);
-            ctx.shadowColor='#74b9ff'; ctx.shadowBlur=12/camera.zoom;
-            ctx.beginPath(); ctx.roundRect(zone.x*sx2,zone.y*sy2,zone.width*sx2,zone.height*sy2,4); ctx.stroke();
-            ctx.shadowBlur=0; ctx.restore();
-          }
+        const zone = getNeonZoneAtWorld(sp.displayX + TILE_SIZE / 2, sp.displayY + TILE_SIZE / 2);
+        if(zone){
+          const pulse=0.5+0.5*Math.sin(Date.now()/400);
+          ctx.save();
+          ctx.strokeStyle=`rgba(116,185,255,${0.36+0.4*pulse})`;
+          ctx.lineWidth=Math.max(1,4/camera.zoom);
+          ctx.shadowColor='#74b9ff'; ctx.shadowBlur=16/camera.zoom;
+          ctx.beginPath(); ctx.roundRect(zone.x,zone.y,zone.w,zone.h,10/camera.zoom); ctx.stroke();
+          ctx.shadowBlur=0; ctx.restore();
         }
       }
 
@@ -1234,13 +1421,8 @@
         });
       });
 
-      // 3. 最后再盖上顶部图层，形成树冠/屋檐遮挡效果。
-      ['Nature','Building','BuildingTop'].forEach(name=>{
-        const l=mapData.layers.find(l=>l.type==='tilelayer'&&l.name===name&&l.visible);
-        if(l) for(let i=0;i<l.data.length;i++) drawTile(l.data[i],i%mapData.width,Math.floor(i/mapData.width));
-      });
-      drawAnimDecors('top');
-      drawParticlesOfType('leaf');
+      // 3. Draw only cyber particles above the actors; the fantasy roof/tree
+      // layers are intentionally hidden by the new protocol city skin.
       drawParticlesOfType('firefly');
 
       actorOverlays.forEach(drawOverlay => drawOverlay());
@@ -1250,26 +1432,16 @@
       if(ov.a>0){ ctx.fillStyle=`rgba(${ov.r},${ov.g},${ov.b},${ov.a})`; ctx.fillRect(camera.x,camera.y,VIEWPORT_W/camera.zoom,VIEWPORT_H/camera.zoom); }
 
       // 鼠标提示只在世界坐标层判定，避免缩放后命中偏移。
-      const zl=mapData.layers.find(l=>l.type==='objectgroup');
-      if(zl&&zl.objects&&mouseX>=0){
-        zl.objects.forEach(zone=>{
-          const sx2=TILE_SIZE/mapData.tilewidth,sy2=TILE_SIZE/mapData.tileheight;
-          const rx=zone.x*sx2,ry=zone.y*sy2,rw=zone.width*sx2,rh=zone.height*sy2;
-          if(mouseX>=rx&&mouseX<=rx+rw&&mouseY>=ry&&mouseY<=ry+rh){
-            const isResZone = isClickableZone(zone.name);
-            const suffix = isResZone ? ' [view]' : '';
-            ctx.font='bold 16px "Pixelify Sans",sans-serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
-            const nameText = zone.name + suffix;
-            const tw=ctx.measureText(nameText).width+20,th=isResZone?42:35,tx=mouseX-15,ty=mouseY-30;
-            ctx.fillStyle='rgba(255,255,255,0.92)'; ctx.beginPath(); ctx.roundRect(tx,ty,tw,th,8); ctx.fill();
-            ctx.strokeStyle=isResZone?'#e67e22':'#f39c12'; ctx.lineWidth=2/camera.zoom; ctx.stroke();
-            ctx.fillStyle='#5c4a3d'; ctx.fillText(zone.name,tx+tw/2,ty+th/2-(isResZone?8:0));
-            if(isResZone){
-              ctx.font='11px "Pixelify Sans",sans-serif'; ctx.fillStyle='#e67e22';
-              ctx.fillText('[view]',tx+tw/2,ty+th/2+10);
-            }
-          }
-        });
+      const hoverZone = mouseX >= 0 ? getNeonZoneAtWorld(mouseX, mouseY) : null;
+      if(hoverZone){
+        ctx.font='bold 16px "Pixelify Sans",sans-serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
+        const tw=Math.max(150 / camera.zoom, ctx.measureText(hoverZone.label).width + 28 / camera.zoom);
+        const th=46 / camera.zoom, tx=mouseX-15,ty=mouseY-30;
+        ctx.fillStyle='rgba(6,9,22,0.94)'; ctx.beginPath(); ctx.roundRect(tx,ty,tw,th,8/camera.zoom); ctx.fill();
+        ctx.strokeStyle=hoverZone.color; ctx.lineWidth=2/camera.zoom; ctx.stroke();
+        ctx.fillStyle=hoverZone.color; ctx.fillText(hoverZone.label,tx+tw/2,ty+th/2-7/camera.zoom);
+        ctx.font='11px "Pixelify Sans",sans-serif'; ctx.fillStyle='#d9f8ef';
+        ctx.fillText(hoverZone.sub,tx+tw/2,ty+th/2+10/camera.zoom);
       }
 
       // 恢复到屏幕坐标后再绘制界面层，避免被镜头缩放影响。
@@ -1339,30 +1511,39 @@
       const mapPixelW=mapData.width*TILE_SIZE,mapPixelH=mapData.height*TILE_SIZE;
       const scale=Math.min(mw/mapPixelW,mh/mapPixelH);
       miniCtx.clearRect(0,0,mw,mh);
-      miniCtx.fillStyle='#2d3436'; miniCtx.fillRect(0,0,mw,mh);
+      const bg = miniCtx.createLinearGradient(0, 0, mw, mh);
+      bg.addColorStop(0, '#07151d');
+      bg.addColorStop(0.52, '#111026');
+      bg.addColorStop(1, '#090713');
+      miniCtx.fillStyle=bg; miniCtx.fillRect(0,0,mw,mh);
 
-      const zl=mapData.layers.find(l=>l.type==='objectgroup');
-      if(zl&&zl.objects){
-        const ts=TILE_SIZE/mapData.tilewidth;
-        zl.objects.forEach(zone=>{
-          const n=(zone.name||'').toLowerCase();
-          if(n.includes('paved')||n.includes('road')) return;
-          const zx=zone.x*ts*scale,zy=zone.y*ts*scale;
-          const zw=Math.max((zone.width||20)*ts*scale,4),zh=Math.max((zone.height||20)*ts*scale,4);
-          // 小地图同步强调当前跟随目标所在区域。
-          if(selectedPlayerId&&clientPlayers[selectedPlayerId]&&clientPlayers[selectedPlayerId].currentZoneName===zone.name){
-            miniCtx.fillStyle='rgba(116,185,255,0.5)'; miniCtx.fillRect(zx,zy,zw,zh);
-            miniCtx.strokeStyle='#74b9ff'; miniCtx.lineWidth=1.5; miniCtx.strokeRect(zx,zy,zw,zh);
-          } else if(n.includes('pond')||n.includes('water')){miniCtx.fillStyle='rgba(116,185,255,0.4)';miniCtx.fillRect(zx,zy,zw,zh);}
-          else if(n.includes('tree')||n.includes('grass')){miniCtx.fillStyle='rgba(106,176,76,0.4)';miniCtx.fillRect(zx,zy,zw,zh);}
-          else{miniCtx.fillStyle='rgba(253,203,110,0.3)';miniCtx.fillRect(zx,zy,zw,zh);}
-          if(!n.includes('tree')&&!n.includes('paved')&&!n.includes('grass')){
-            miniCtx.font='7px "Pixelify Sans",sans-serif';miniCtx.fillStyle='rgba(255,255,255,0.7)';
-            miniCtx.textAlign='center';miniCtx.textBaseline='middle';
-            miniCtx.fillText(displayZoneName(zone.name).substring(0,9),zx+zw/2,zy+zh/2);
-          }
-        });
-      }
+      miniCtx.strokeStyle='rgba(38,242,194,0.14)';
+      miniCtx.lineWidth=1;
+      for(let x=0;x<mw;x+=18){miniCtx.beginPath();miniCtx.moveTo(x,0);miniCtx.lineTo(x,mh);miniCtx.stroke();}
+      for(let y=0;y<mh;y+=18){miniCtx.beginPath();miniCtx.moveTo(0,y);miniCtx.lineTo(mw,y);miniCtx.stroke();}
+
+      const splitX = mapPixelW * 0.585 * scale;
+      miniCtx.fillStyle='rgba(38,242,194,0.08)'; miniCtx.fillRect(0,0,splitX,mh);
+      miniCtx.fillStyle='rgba(255,95,215,0.08)'; miniCtx.fillRect(splitX,0,mw-splitX,mh);
+      miniCtx.strokeStyle='rgba(255,207,90,0.75)';
+      miniCtx.setLineDash([4,3]);
+      miniCtx.beginPath(); miniCtx.moveTo(splitX,2); miniCtx.lineTo(splitX,mh-2); miniCtx.stroke();
+      miniCtx.setLineDash([]);
+
+      const selected = selectedPlayerId && clientPlayers[selectedPlayerId]
+        ? getNeonZoneAtWorld(clientPlayers[selectedPlayerId].displayX + TILE_SIZE / 2, clientPlayers[selectedPlayerId].displayY + TILE_SIZE / 2)
+        : null;
+      getNeonProtocolZones().forEach(zone=>{
+        const zx=zone.x*scale,zy=zone.y*scale,zw=Math.max(zone.w*scale,8),zh=Math.max(zone.h*scale,7);
+        miniCtx.fillStyle=zone.kind==='core'?'rgba(255,207,90,0.32)':(zone.kind==='adventure'?'rgba(255,95,215,0.28)':'rgba(38,242,194,0.20)');
+        miniCtx.fillRect(zx,zy,zw,zh);
+        miniCtx.strokeStyle=selected&&selected.id===zone.id?'#74b9ff':zone.color;
+        miniCtx.lineWidth=selected&&selected.id===zone.id?2:1;
+        miniCtx.strokeRect(zx,zy,zw,zh);
+        miniCtx.font='7px "Pixelify Sans",sans-serif';miniCtx.fillStyle='rgba(255,255,255,0.8)';
+        miniCtx.textAlign='center';miniCtx.textBaseline='middle';
+        miniCtx.fillText(zone.label.substring(0,10),zx+zw/2,zy+zh/2);
+      });
 
       // 玩家点位与名字同时显示，方便在缩略图里快速定位。
       for(const id in clientPlayers){
