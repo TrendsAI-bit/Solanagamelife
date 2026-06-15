@@ -508,7 +508,7 @@
         clientPlayers[id] = { ...p, displayX: p.x * TILE_SIZE, displayY: p.y * TILE_SIZE, targetX: p.x * TILE_SIZE, targetY: p.y * TILE_SIZE, animFrame: 0 };
         playerActivityData[id] = [
           { time: now - 9000, type: 'join', text: 'Entered Solana Game Life demo mode' },
-          { time: now - 5000, type: 'defi', text: `${p.name} updated a simulated protocol position` },
+          { time: now - 5000, type: 'defi', text: `${p.name} updated a protocol position` },
         ];
       }
       updateAiPanel();
@@ -988,7 +988,7 @@
         { x: splitX * 0.38, y: mapH * 0.44, label: 'FARM' },
         { x: splitX * 0.72, y: mapH * 0.34, label: 'BOOKS' },
         { x: splitX + (mapW - splitX) * 0.22, y: mapH * 0.24, label: 'MINE' },
-        { x: splitX + (mapW - splitX) * 0.55, y: mapH * 0.48, label: 'BTC' },
+        { x: splitX + (mapW - splitX) * 0.55, y: mapH * 0.48, label: 'SGL' },
         { x: splitX + (mapW - splitX) * 0.78, y: mapH * 0.72, label: 'RISK' },
       ];
       ctx.strokeStyle = 'rgba(38,242,194,0.24)';
@@ -1000,18 +1000,18 @@
         ctx.stroke();
       }
       for (const node of nodes) {
-        const isBtc = node.label === 'BTC';
-        ctx.fillStyle = isBtc ? '#ffcf5a' : '#26f2c2';
+        const isCore = node.label === 'SGL';
+        ctx.fillStyle = isCore ? '#ffcf5a' : '#26f2c2';
         ctx.shadowColor = ctx.fillStyle;
         ctx.shadowBlur = 10 / camera.zoom;
         ctx.beginPath();
-        ctx.arc(node.x, node.y, (isBtc ? 9 : 6) / camera.zoom, 0, Math.PI * 2);
+        ctx.arc(node.x, node.y, (isCore ? 9 : 6) / camera.zoom, 0, Math.PI * 2);
         ctx.fill();
         ctx.shadowBlur = 0;
         ctx.font = `${Math.max(10, 14 / camera.zoom)}px "Pixelify Sans", sans-serif`;
         ctx.textAlign = 'center';
         ctx.textBaseline = 'top';
-        ctx.fillStyle = isBtc ? '#fff2bd' : '#d9f8ef';
+        ctx.fillStyle = isCore ? '#fff2bd' : '#d9f8ef';
         ctx.strokeStyle = 'rgba(8,10,18,0.9)';
         ctx.lineWidth = 3 / camera.zoom;
         ctx.strokeText(node.label, node.x, node.y + 10 / camera.zoom);
@@ -1032,7 +1032,7 @@
         ctx.fillText(sub, x, y + 22 / camera.zoom);
       }
       districtLabel('NORMAL WORK', 'farm · stake · read · compound', splitX * 0.5, mapH * 0.08, '#26f2c2');
-      districtLabel('ADVENTURE MINE', 'simulated BTC relic hunt', splitX + (mapW - splitX) * 0.5, mapH * 0.08, '#ffcf5a');
+      districtLabel('ADVENTURE MINE', 'SGL relic core hunt', splitX + (mapW - splitX) * 0.5, mapH * 0.08, '#ffcf5a');
       ctx.restore();
     }
 
@@ -1058,7 +1058,7 @@
         ctx.font = 'bold 12px "Pixelify Sans", sans-serif';
       }
       chip(96, 46, 210, 'NORMAL WORK DISTRICT', 'yield · stake · books', '#26f2c2', 'rgba(8,10,18,0.74)');
-      chip(split + 36, 46, 230, 'ADVENTURE BTC RELIC MINE', 'simulated hunt · no real BTC payout', '#ffcf5a', 'rgba(8,10,18,0.78)');
+      chip(split + 36, 46, 230, 'ADVENTURE SGL RELIC MINE', 'SGL core hunt · high risk', '#ffcf5a', 'rgba(8,10,18,0.78)');
       ctx.strokeStyle = 'rgba(255,207,90,0.68)';
       ctx.setLineDash([8, 6]);
       ctx.beginPath();
@@ -1520,7 +1520,7 @@
       const mode = p.mode || agent?.mode || 'normal';
       const modeLabel = mode === 'adventure' ? 'Adventure Mine' : 'Normal Work';
       const extra = mode === 'adventure'
-        ? ` · ${Number(p.mineAttempts || 0)} mines · ${Number(p.treasureClues || 0)} clues · ${Number(p.btcRelics || 0)} BTC relics`
+        ? ` · ${Number(p.mineAttempts || 0)} mines · ${Number(p.treasureClues || 0)} clues · ${Number(p.sglRelics || 0)} SGL relics`
         : ` · ${Number(p.stakedSol || 0).toFixed(2)} SOL · ${Number(p.lpShares || 0).toFixed(2)} LP`;
       walletAgentStatusEl.textContent = `${modeLabel}${extra} · risk ${Number(p.riskScore || 0)}%`;
     }
@@ -1748,7 +1748,7 @@
           html += `<div class="stat-row">LP Fees: <span class="stat-name">${Number(t.lpFees || 0).toLocaleString()} SGL</span></div>`;
           html += `<div class="stat-row">Risk: <span class="stat-name">${Number(t.risk || 0)}%</span></div>`;
           html += `<div class="stat-row">Treasure Pool: <span class="stat-name">${Number(t.treasurePool || 0).toLocaleString()} SGL</span></div>`;
-          html += '<div class="stat-row">Adventure Mine: <span class="stat-name">simulated BTC relic hunt</span></div>';
+          html += '<div class="stat-row">Adventure Mine: <span class="stat-name">SGL relic core hunt</span></div>';
           if (leader) html += `<div class="stat-row">Top wallet: <span class="stat-name">${escapeHtml(leader.name)}</span> (${leader.sglYield || leader.claimable} SGL)</div>`;
           html += `<div class="stat-row">${escapeHtml(t.lastEvent || 'Economy initialized')}</div>`;
           economyContentEl.innerHTML = html;

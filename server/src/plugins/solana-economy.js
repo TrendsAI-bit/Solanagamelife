@@ -195,7 +195,7 @@ function getPlayerPortfolio(playerId, playerName) {
       treasureClues: 0,
       mineAttempts: 0,
       treasureShards: 0,
-      btcRelics: 0,
+      sglRelics: 0,
     };
     portfolio.set(playerId, state);
   }
@@ -250,7 +250,7 @@ function summarizePortfolio(state) {
     treasureClues: state.treasureClues || 0,
     mineAttempts: state.mineAttempts || 0,
     treasureShards: state.treasureShards || 0,
-    btcRelics: state.btcRelics || 0,
+    sglRelics: state.sglRelics || 0,
   };
 }
 
@@ -398,7 +398,7 @@ class SolanaEconomyPlugin extends IPlugin {
       req.app.locals.worldEngine.recordPluginActivity(
         playerId,
         playMode === 'adventure'
-          ? `Booted ${name} in Adventure Mine mode. Hunting map clues and a simulated one-BTC relic.`
+          ? `Booted ${name} in Adventure Mine mode. Hunting map clues and the SGL relic core.`
           : `Booted ${name} in Normal Work mode. Building farms, reading books, and growing SGL yield.`,
         'defi'
       );
@@ -476,11 +476,11 @@ class SolanaEconomyPlugin extends IPlugin {
               const hit = Math.random() < 0.00000001;
               if (hit) {
                 state.treasureShards += 1;
-                state.btcRelics += 1;
+                state.sglRelics += 1;
                 state.claimable += 21000;
                 treasury.treasurePool = Math.max(0, treasury.treasurePool - 21000);
-                treasury.lastEvent = `${player.name} found the simulated one-BTC relic (+21,000 SGL)`;
-                worldEngine.recordPluginActivity(agentId, 'Found the simulated one-BTC relic and banked 21,000 SGL.', 'defi');
+                treasury.lastEvent = `${player.name} found the SGL relic core (+21,000 SGL)`;
+                worldEngine.recordPluginActivity(agentId, 'Found the SGL relic core and banked 21,000 SGL.', 'defi');
               } else {
                 treasury.lastEvent = `${player.name} mined a risky map vein (+3 SGL)`;
                 worldEngine.recordPluginActivity(agentId, `Adventure mine attempt ${state.mineAttempts}: found clue dust and +3 SGL.`, 'defi');
